@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- Color Palette: Primary --- */
+  --color-primary-main: #2563EB;
+  --color-primary-dark: #1E293B;
+  --color-primary-light: #DBEAFE;
+
+  /* --- Color Palette: Semantic --- */
+  --color-semantic-success: #15A34A;
+  --color-semantic-warning: #F59E0B;
+  --color-semantic-error: #EF4444;
+  --color-semantic-info: #3B82F6;
+
+  /* --- Color Palette: Bias Rating Colors --- */
+  --color-bias-left: #2563EB;
+  --color-bias-center: #64748B;
+  --color-bias-right: #EF4444;
+  --color-bias-mixed: #8B5CF6;
+
+  /* --- Color Palette: Neutrals --- */
+  --color-neutral-50: #F8FAFC;
+  --color-neutral-100: #F1F5F9;
+  --color-neutral-200: #E2E8F0;
+  --color-neutral-300: #CBD5E1;
+  --color-neutral-400: #94A3B8;
+  --color-neutral-500: #64748B;
+  --color-neutral-700: #334155;
+  --color-neutral-900: #0F172A;
+
+  /* --- Typography --- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  /* Defaulting background to Neutral 50 and text to Neutral 900 for high contrast */
+  --background: var(--color-neutral-50);
+  --foreground: var(--color-neutral-900);
+}
+
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  /* The font-family is handled by Next.js and Tailwind's sans class, but we provide a fallback */
+  font-family: var(--font-sans);
+}
