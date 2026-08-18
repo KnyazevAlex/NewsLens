@@ -77,3 +77,10 @@ Such as:
 * `latest-logs.tsx`
 
 In order to debloat pages and make populating components with real data and removing mock data easier.
+
+## [8/17/2026] - Implemented Supabase Persistence
+
+* **Files Created/Changed:** `supabase/schema.sql`, `supabase/seed.sql`, `lib/supabase/types.ts`, `lib/supabase/server.ts`, `lib/supabase/queries/articles.ts`, `lib/supabase/queries/logs.ts`, `app/page.tsx`, `app/news/[id]/page.tsx`, `app/customComponents/news-grid.tsx`, `app/customComponents/bias-widget.tsx`, `app/customComponents/latest-logs.tsx`; removed the unused `app/data/data/mock-news.ts` fixture.
+* **Features Added:** Created the six core Supabase tables with constraints, indexes, RLS, and least-privilege grants; added idempotent demo seed data; added a typed server-only service-role client and query layer; replaced homepage and article-detail mock reads with live persisted articles, analyses, aggregate framing metrics, and logs.
+* **Approach & Why:** Kept Clerk as the only authentication provider and all Supabase access server-side. Browser roles have no table privileges, while request-time rendering keeps database content current. Demo sources are inactive and use `.invalid` URLs so seeded UI content can never be mistaken for production scraping configuration.
+* **Remote State:** Applied the `initial_biasly_persistence` migration and seed to the NewsLens Supabase project. Verified 6 sources, 6 articles, 2 analyses, and 3 logs; all six tables have RLS enabled, service-role reads succeed, and publishable-key article reads are denied.

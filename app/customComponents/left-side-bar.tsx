@@ -1,5 +1,6 @@
 import { Home, TrendingUp, Layers, Bookmark, History, Filter, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const LeftSideBar = () => {
     return (
@@ -7,9 +8,9 @@ const LeftSideBar = () => {
         <div>
           {/* Logo */}
           <div className="h-20 flex items-center px-6 gap-3">
-            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+            <Link href="/" className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center text-white font-bold text-lg">
               N
-            </div>
+            </Link>
             <div>
               <h1 className="text-xl font-bold text-neutral-900 tracking-tight leading-none">NewsLens</h1>
               <span className="text-[11px] text-neutral-500">Clear perspectives</span>
@@ -18,21 +19,21 @@ const LeftSideBar = () => {
 
           {/* Main Nav */}
           <nav className="px-4 space-y-1">
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 bg-[#EEF2FF] text-[#2563EB] rounded-lg font-medium text-sm">
+            <Link href="/" className="flex items-center gap-3 px-3 py-2.5 bg-[#EEF2FF] text-[#2563EB] rounded-lg font-medium text-sm">
               <Home className="w-4 h-4" /> Home
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            </Link>
+            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <TrendingUp className="w-4 h-4" /> Trending
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            </Link>
+            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <Layers className="w-4 h-4" /> Sources
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            </Link>
+            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <Bookmark className="w-4 h-4" /> Bookmarks
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            </Link>
+            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <History className="w-4 h-4" /> History
-            </a>
+            </Link>
           </nav>
 
           <div className="my-6 mx-4 border-t border-neutral-100" />
