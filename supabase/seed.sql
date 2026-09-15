@@ -3,12 +3,8 @@
 
 insert into public.sources (id, name, listing_url, parser_strategy, is_active)
 values
-  ('00000000-0000-4000-8000-000000000101', 'Reuters', 'https://reuters.example.invalid/', 'demo_seed', false),
-  ('00000000-0000-4000-8000-000000000102', 'Bloomberg', 'https://bloomberg.example.invalid/', 'demo_seed', false),
-  ('00000000-0000-4000-8000-000000000103', 'BBC', 'https://bbc.example.invalid/', 'demo_seed', false),
-  ('00000000-0000-4000-8000-000000000104', 'TechCrunch', 'https://techcrunch.example.invalid/', 'demo_seed', false),
-  ('00000000-0000-4000-8000-000000000105', 'The Washington Post', 'https://washington-post.example.invalid/', 'demo_seed', false),
-  ('00000000-0000-4000-8000-000000000106', 'Associated Press', 'https://associated-press.example.invalid/', 'demo_seed', false)
+  ('00000000-0000-4000-8000-000000000101', 'Reuters', 'https://www.bbc.com/news/articles/cq0m3pkmgg1ko', 'first_seed', true),
+
 on conflict do nothing;
 
 insert into public.articles (
