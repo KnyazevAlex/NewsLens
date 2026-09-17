@@ -14,6 +14,11 @@ export interface NewsCardData {
   categories: string[]
   biasValue: number
   biasLabel: BiasLabel | null
+  sentimentLabel: TableRow<"article_analyses">["sentiment_label"] | null
+  leftPercentage: number | null
+  centerPercentage: number | null
+  rightPercentage: number | null
+  confidence: number | null
   imageUrl: string
 }
 
@@ -110,7 +115,7 @@ export async function getRecentArticles(limit = 24): Promise<NewsCardData[]> {
       supabase.from("sources").select("id, name").in("id", sourceIds),
       supabase
         .from("article_analyses")
-        .select("article_id, bias_score, bias_label")
+        .select("article_id, bias_score, bias_label, sentiment_label, left_percentage, center_percentage, right_percentage, confidence")
         .in("article_id", articleIds),
     ])
 
@@ -132,6 +137,11 @@ export async function getRecentArticles(limit = 24): Promise<NewsCardData[]> {
       categories: article.categories,
       biasValue: analysis ? Math.round(Number(analysis.bias_score) * 100) : 0,
       biasLabel: analysis?.bias_label ?? null,
+      sentimentLabel: analysis?.sentiment_label ?? null,
+      leftPercentage: analysis?.left_percentage ?? null,
+      centerPercentage: analysis?.center_percentage ?? null,
+      rightPercentage: analysis?.right_percentage ?? null,
+      confidence: analysis ? Number(analysis.confidence) : null,
       imageUrl: article.image_url,
     }
   })

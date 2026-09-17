@@ -4,7 +4,8 @@ import { Bookmark } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
 
-import BiasRatingIndicator from "@/app/customComponents/bias-rating"
+import { BiasBadge } from "@/app/customComponents/bias-badge"
+import { FramingDistribution } from "@/app/customComponents/framing-distribution"
 import type { NewsCardData } from "@/lib/supabase/queries/articles"
 
 interface NewsGridProps {
@@ -22,11 +23,9 @@ function formatBiasLabel(label: NewsCardData["biasLabel"]) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-function biasLabelColor(label: NewsCardData["biasLabel"]) {
-  if (label === "left") return "text-blue-600"
-  if (label === "right") return "text-red-500"
-  if (label === "mixed") return "text-purple-600"
-  return "text-neutral-600"
+function formatSentimentLabel(label: NewsCardData["sentimentLabel"]) {
+  if (!label) return "Pending"
+  return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 export default function NewsGrid({ articles }: NewsGridProps) {
@@ -91,19 +90,40 @@ export default function NewsGrid({ articles }: NewsGridProps) {
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-3">
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="font-medium text-neutral-500">AI framing</span>
-                  <span className={`font-bold ${biasLabelColor(article.biasLabel)}`}>
-                    {formatBiasLabel(article.biasLabel)}
-                  </span>
-                </div>
-                {article.biasLabel && (
-                  <div className="w-24">
-                    <BiasRatingIndicator value={article.biasValue} />
+              {article.biasLabel
+                && article.leftPercentage !== null
+                && article.centerPercentage !== null
+                && article.rightPercentage !== null
+                && article.confidence !== null ? (
+                  <div className="space-y-3 border-t border-neutral-100 pt-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                          AI-estimated framing
+                        </span>
+                        <BiasBadge variant={article.biasLabel} className="px-2 py-0.5 text-[10px]">
+                          {formatBiasLabel(article.biasLabel)}
+                        </BiasBadge>
+                      </div>
+                      <span className="text-[10px] font-medium text-neutral-500">
+                        {Math.round(article.confidence * 100)}% confidence
+                      </span>
+                    </div>
+                    <FramingDistribution
+                      left={article.leftPercentage}
+                      center={article.centerPercentage}
+                      right={article.rightPercentage}
+                      compact
+                    />
+                    <div className="text-[10px] text-neutral-500">
+                      Sentiment: <span className="font-semibold text-neutral-700">{formatSentimentLabel(article.sentimentLabel)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-neutral-100 pt-3 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                    Analysis pending
                   </div>
                 )}
-              </div>
             </div>
           </motion.article>
         </Link>

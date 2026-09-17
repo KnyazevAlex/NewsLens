@@ -11,7 +11,9 @@ import {
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { BiasBadge } from "@/app/customComponents/bias-badge"
 import { BiasRatingIndicator } from "@/app/customComponents/bias-rating"
+import { FramingDistribution } from "@/app/customComponents/framing-distribution"
 import Header from "@/app/customComponents/header"
 import LeftSideBar from "@/app/customComponents/left-side-bar"
 import { Button } from "@/components/ui/button"
@@ -128,30 +130,22 @@ export default async function NewsDetailsPage({ params }: PageProps) {
                         {Math.round(analysis.confidence * 100)}% confidence
                       </span>
                     </div>
-                    <span className="text-xl font-extrabold text-[#2563EB]">{titleCase(analysis.biasLabel)}</span>
+                    <BiasBadge variant={analysis.biasLabel} className="w-fit px-3 py-1.5 text-sm">
+                      {titleCase(analysis.biasLabel)}
+                    </BiasBadge>
                     <BiasRatingIndicator value={Math.round(analysis.biasScore * 100)} />
-                    <p className="text-xs leading-normal text-neutral-500">{analysis.disclaimer}</p>
+                    <p className="rounded-lg bg-neutral-50 p-3 text-xs leading-normal text-neutral-600">
+                      {analysis.disclaimer}
+                    </p>
                   </section>
 
                   <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                     <h2 className="text-sm font-bold text-neutral-900">Framing Distribution</h2>
-                    <div className="space-y-4 pt-1">
-                      {[
-                        { label: "Left", value: analysis.leftPercentage , color: "bg-blue-600" },
-                        { label: "Center", value: analysis.centerPercentage, color: "bg-neutral-600" },
-                        { label: "Right", value: analysis.rightPercentage, color: "bg-red-500" },
-                      ].map((row) => (
-                        <div key={row.label} className="space-y-1.5">
-                          <div className="flex justify-between text-xs font-medium">
-                            <span className="text-neutral-600">{row.label}</span>
-                            <span className="font-bold text-neutral-900">{row.value}%</span>
-                          </div>
-                          <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                            <div className={`h-full rounded-full ${row.color}`} style={{ width: `${row.value}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <FramingDistribution
+                      left={analysis.leftPercentage}
+                      center={analysis.centerPercentage}
+                      right={analysis.rightPercentage}
+                    />
                     <div className="border-t border-neutral-100 pt-3 text-xs text-neutral-600">
                       Sentiment: <span className="font-bold text-neutral-900">{titleCase(analysis.sentimentLabel)}</span>
                       <span className="text-neutral-400"> ({analysis.sentimentScore.toFixed(2)})</span>
