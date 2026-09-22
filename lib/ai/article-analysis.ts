@@ -1,14 +1,17 @@
 import "server-only"
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { generateText, Output } from "ai"
+import { embed, generateText, Output } from "ai"
 import { z } from "zod"
 
 import type { BiasLabel, GeneratedArticleAnalysis } from "@/lib/ai/types"
 
 const DEFAULT_MODEL = "gemini-3.6-flash"
 const MAX_ARTICLE_CHARACTERS = 60_000
+const MAX_EMBEDDING_CHARACTERS = 24_000
 const MAX_GENERATION_ATTEMPTS = 2
+export const EMBEDDING_DIMENSIONS = 1536
+const DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 
 export const AI_ANALYSIS_DISCLAIMER =
   "This political-framing assessment is AI-estimated from the article's language and is not an objective determination of truth, intent, or source ideology."
@@ -74,8 +77,19 @@ export class ArticleAnalysisGenerationError extends Error {
   }
 }
 
+export class ArticleEmbeddingGenerationError extends Error {
+  constructor() {
+    super("Unable to generate a valid article embedding.")
+    this.name = "ArticleEmbeddingGenerationError"
+  }
+}
+
 export function getAnalysisModelName() {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL
+}
+
+export function getEmbeddingModelName() {
+  return process.env.GEMINI_EMBEDDING_MODEL?.trim() || DEFAULT_EMBEDDING_MODEL
 }
 
 export function assertAnalysisConfiguration() {
@@ -84,6 +98,11 @@ export function assertAnalysisConfiguration() {
 
 function normalizeArticleText(value: string) {
   return value.replace(/\s+/g, " ").trim().slice(0, MAX_ARTICLE_CHARACTERS)
+}
+
+function buildEmbeddingInput(input: { title: string; summary: string; rawText: string }) {
+  const body = normalizeArticleText(input.rawText).slice(0, MAX_EMBEDDING_CHARACTERS)
+  return `Title: ${input.title.trim()}\n\nNeutral summary: ${input.summary.trim()}\n\nArticle body: ${body}`
 }
 
 function buildPrompt(title: string, articleText: string) {
@@ -160,4 +179,35 @@ export async function analyzeArticle(input: {
   }
 
   throw new ArticleAnalysisGenerationError()
+}
+
+export async function embedArticle(input: {
+  title: string
+  summary: string
+  rawText: string
+}): Promise<number[]> {
+  assertAnalysisConfiguration()
+
+  try {
+    const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY!.trim() })
+    const result = await embed({
+      model: google.embedding(getEmbeddingModelName()),
+      value: buildEmbeddingInput(input),
+      providerOptions: {
+        google: { outputDimensionality: EMBEDDING_DIMENSIONS },
+      },
+      maxRetries: 1,
+    })
+
+    if (result.embedding.length !== EMBEDDING_DIMENSIONS || result.embedding.some((value) => !Number.isFinite(value))) {
+      throw new ArticleEmbeddingGenerationError()
+    }
+
+    return result.embedding
+  } catch (error) {
+    console.warn("[Analysis] Gemini embedding failed", {
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    })
+    throw new ArticleEmbeddingGenerationError()
+  }
 }

@@ -6,6 +6,22 @@ import type { Json } from "@/lib/supabase/types"
 
 const PAGE_SIZE = 500
 
+function toEmbedding(value: unknown): number[] | null {
+  const candidate = typeof value === "string"
+    ? (() => {
+        try {
+          return JSON.parse(value) as unknown
+        } catch {
+          return null
+        }
+      })()
+    : value
+
+  return Array.isArray(candidate) && candidate.length > 0 && candidate.every((item) => typeof item === "number" && Number.isFinite(item))
+    ? candidate
+    : null
+}
+
 function throwQueryError(context: string, error: { message: string; code?: string }) {
   console.error(`[Supabase] ${context}`, { code: error.code, message: error.message })
   throw new Error(`Unable to ${context.toLowerCase()}.`)
@@ -22,7 +38,7 @@ export async function getPendingArticlesSnapshot(options: {
   while (true) {
     let query = supabase
       .from("articles")
-      .select("id, title, raw_text, article_analyses(id)")
+      .select("id, title, raw_text, article_analyses(summary, embedding)")
       .order("published_at", { ascending: false })
       .order("id", { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1)
@@ -34,8 +50,17 @@ export async function getPendingArticlesSnapshot(options: {
 
     const rows = data ?? []
     for (const article of rows) {
-      if (!article.article_analyses) {
-        pending.push({ id: article.id, title: article.title, rawText: article.raw_text })
+      const existingAnalysis = article.article_analyses
+      const embedding = existingAnalysis ? toEmbedding(existingAnalysis.embedding) : null
+      if (!existingAnalysis || !embedding) {
+        pending.push({
+          id: article.id,
+          title: article.title,
+          rawText: article.raw_text,
+          existingAnalysis: existingAnalysis
+            ? { summary: existingAnalysis.summary, embedding }
+            : null,
+        })
       }
     }
 
@@ -71,6 +96,18 @@ export async function saveArticleAnalysis(articleId: string, analysis: Generated
 
   if (analysisError) throwQueryError("save article analysis", analysisError)
 
+}
+
+export async function saveArticleEmbedding(articleId: string, embedding: number[], markArticleAnalyzed: boolean) {
+  const supabase = createServerSupabaseClient()
+  const { error: embeddingError } = await supabase
+    .from("article_analyses")
+    .update({ embedding, updated_at: new Date().toISOString() })
+    .eq("article_id", articleId)
+
+  if (embeddingError) throwQueryError("save article embedding", embeddingError)
+  if (!markArticleAnalyzed) return
+
   const { error: articleError } = await supabase
     .from("articles")
     .update({ analyzed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
@@ -97,4 +134,3 @@ export async function writeAnalysisLog(input: {
 
   if (error) console.warn("[Analysis] Unable to persist log", { event: input.event, code: error.code })
 }
-

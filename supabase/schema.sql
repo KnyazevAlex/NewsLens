@@ -2,6 +2,7 @@
 -- Run this file in the Supabase SQL Editor before supabase/seed.sql.
 
 create extension if not exists pgcrypto;
+create extension if not exists vector with schema extensions;
 
 create table if not exists public.sources (
   id uuid primary key default gen_random_uuid(),
@@ -55,6 +56,7 @@ create table if not exists public.article_analyses (
   loaded_terms text[] not null default '{}',
   disclaimer text not null,
   model text not null,
+  embedding extensions.vector(1536),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint article_analyses_summary_not_blank check (btrim(summary) <> ''),
@@ -116,6 +118,9 @@ create index if not exists articles_source_id_idx on public.articles (source_id)
 create index if not exists articles_published_at_idx on public.articles (published_at desc);
 create index if not exists articles_pending_analysis_idx on public.articles (published_at desc) where analyzed_at is null;
 create index if not exists article_analyses_bias_label_idx on public.article_analyses (bias_label);
+-- IVFFlat lists are tuned for the current small corpus; revisit this value as article volume grows.
+create index if not exists article_analyses_embedding_cosine_idx
+  on public.article_analyses using ivfflat (embedding extensions.vector_cosine_ops) with (lists = 10);
 create index if not exists logs_source_id_idx on public.logs (source_id);
 create index if not exists logs_article_id_idx on public.logs (article_id);
 create index if not exists logs_created_at_idx on public.logs (created_at desc);
@@ -146,3 +151,43 @@ grant select, insert on table public.logs to service_role;
 grant select, insert, update on table public.oxylabs_schedules to service_role;
 grant select, insert, update on table public.oxylabs_schedule_runs to service_role;
 
+create or replace function public.get_related_articles(
+  query_article_id uuid,
+  query_embedding extensions.vector(1536)
+)
+returns table (
+  article_id uuid,
+  title text,
+  description text,
+  image_url text,
+  published_at timestamptz,
+  source_name text,
+  source_logo_url text,
+  similarity double precision
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    article.id,
+    article.title,
+    article.description,
+    article.image_url,
+    article.published_at,
+    source.name,
+    source.logo_url,
+    1 - (analysis.embedding <=> query_embedding) as similarity
+  from public.article_analyses as analysis
+  join public.articles as article on article.id = analysis.article_id
+  join public.sources as source on source.id = article.source_id
+  where analysis.article_id <> query_article_id
+    and analysis.embedding is not null
+    and article.analyzed_at is not null
+  order by analysis.embedding <=> query_embedding asc
+  limit 5;
+$$;
+
+revoke all on function public.get_related_articles(uuid, extensions.vector) from public, anon, authenticated;
+grant execute on function public.get_related_articles(uuid, extensions.vector) to service_role;

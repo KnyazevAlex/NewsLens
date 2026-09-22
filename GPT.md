@@ -609,7 +609,7 @@ This section is implemented after AI analysis is working (section 19). pgvector 
 
 Enable pgvector in Supabase Dashboard under Database Extensions. Then add an `embedding vector(1536)` column to `article_analyses` and create an IVFFlat cosine index on it via the SQL Editor. Update `supabase/schema.sql`, `lib/supabase/types.ts`, and run the ALTER SQL before testing.
 
-Update the `/api/analyze` route to also call OpenAI text-embedding-3-small for each article alongside the existing analysis call and save the result to `article_analyses.embedding`. Update `analyzed_at` only after both analysis and embedding are saved. Because pending detection uses LEFT JOIN logic (see section 19), articles whose `article_analyses` row exists but has `embedding IS NULL` will automatically be picked up for embedding backfill on the next run without re-running the full analysis.
+Update the `/api/analyze` route to also call Google Gemini Embedding for each article alongside the existing analysis call and save the result to `article_analyses.embedding`. Update `analyzed_at` only after both analysis and embedding are saved. Because pending detection uses LEFT JOIN logic (see section 19), articles whose `article_analyses` row exists but has `embedding IS NULL` will automatically be picked up for embedding backfill on the next run without re-running the full analysis.
 
 To find related articles, query `article_analyses` joined to `articles` and `sources`, filter to rows where the embedding is not null and the article is analyzed and is not the current article, then order by cosine distance (`<=>`) to the current article's embedding and limit to 5 results.
 

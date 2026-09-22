@@ -124,6 +124,7 @@ export type Database = {
           loaded_terms: string[]
           disclaimer: string
           model: string
+          embedding: number[] | null
           created_at: string
           updated_at: string
         }
@@ -143,6 +144,7 @@ export type Database = {
           loaded_terms?: string[]
           disclaimer: string
           model: string
+          embedding?: number[] | null
           created_at?: string
           updated_at?: string
         }
@@ -162,6 +164,7 @@ export type Database = {
           loaded_terms?: string[]
           disclaimer?: string
           model?: string
+          embedding?: number[] | null
           created_at?: string
           updated_at?: string
         }
@@ -313,7 +316,24 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_related_articles: {
+        Args: {
+          query_article_id: string
+          query_embedding: number[]
+        }
+        Returns: Array<{
+          article_id: string
+          title: string
+          description: string | null
+          image_url: string
+          published_at: string
+          source_name: string
+          source_logo_url: string | null
+          similarity: number
+        }>
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
@@ -327,4 +347,3 @@ export type TableInsert<T extends keyof Database["public"]["Tables"]> =
 
 export type TableUpdate<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Update"]
-

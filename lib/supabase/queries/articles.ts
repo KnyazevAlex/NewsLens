@@ -43,6 +43,18 @@ export interface ArticleAnalysisData {
   loadedTerms: string[]
   disclaimer: string
   model: string
+  embedding: number[] | null
+}
+
+export interface RelatedArticleData {
+  id: string
+  title: string
+  description: string
+  imageUrl: string
+  publishedAt: string
+  source: string
+  sourceLogoUrl: string | null
+  similarity: number
 }
 
 export interface ArticleDetailsData {
@@ -78,6 +90,22 @@ function toReadTime(rawText: string) {
   return Math.max(1, Math.ceil(words / 220))
 }
 
+function toEmbedding(value: unknown): number[] | null {
+  const candidate = typeof value === "string"
+    ? (() => {
+        try {
+          return JSON.parse(value) as unknown
+        } catch {
+          return null
+        }
+      })()
+    : value
+
+  return Array.isArray(candidate) && candidate.length > 0 && candidate.every((item) => typeof item === "number" && Number.isFinite(item))
+    ? candidate
+    : null
+}
+
 function mapAnalysis(analysis: TableRow<"article_analyses">): ArticleAnalysisData {
   return {
     summary: analysis.summary,
@@ -93,7 +121,29 @@ function mapAnalysis(analysis: TableRow<"article_analyses">): ArticleAnalysisDat
     loadedTerms: analysis.loaded_terms,
     disclaimer: analysis.disclaimer,
     model: analysis.model,
+    embedding: toEmbedding(analysis.embedding),
   }
+}
+
+export async function getRelatedArticles(articleId: string, embedding: number[]): Promise<RelatedArticleData[]> {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase.rpc("get_related_articles", {
+    query_article_id: articleId,
+    query_embedding: embedding,
+  })
+
+  if (error) throwQueryError("load related articles", error)
+
+  return (data ?? []).map((article) => ({
+    id: article.article_id,
+    title: article.title,
+    description: article.description?.trim() ?? "",
+    imageUrl: article.image_url,
+    publishedAt: article.published_at,
+    source: article.source_name,
+    sourceLogoUrl: article.source_logo_url,
+    similarity: Number(article.similarity),
+  }))
 }
 
 export async function getRecentArticles(limit = 24): Promise<NewsCardData[]> {

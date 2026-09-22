@@ -23,11 +23,15 @@ export interface PendingArticle {
   id: string
   title: string
   rawText: string
+  existingAnalysis: {
+    summary: string
+    embedding: number[] | null
+  } | null
 }
 
 export interface AnalysisFailure {
   articleId: string
-  reason: "generation_failed" | "persistence_failed"
+  reason: "generation_failed" | "embedding_failed" | "persistence_failed"
 }
 
 export interface AnalysisRunSummary {
@@ -35,6 +39,8 @@ export interface AnalysisRunSummary {
   pending: number
   selected: number
   analyzed: number
+  embedded: number
+  backfilled: number
   skipped: number
   failed: number
   batches: number
@@ -42,4 +48,3 @@ export interface AnalysisRunSummary {
   model: string
   failures: AnalysisFailure[]
 }
-

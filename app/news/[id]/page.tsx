@@ -17,7 +17,7 @@ import { FramingDistribution } from "@/app/customComponents/framing-distribution
 import Header from "@/app/customComponents/header"
 import LeftSideBar from "@/app/customComponents/left-side-bar"
 import { Button } from "@/components/ui/button"
-import { getArticleById } from "@/lib/supabase/queries/articles"
+import { getArticleById, getRelatedArticles } from "@/lib/supabase/queries/articles"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -45,6 +45,9 @@ export default async function NewsDetailsPage({ params }: PageProps) {
   if (!article) notFound()
 
   const analysis = article.analysis
+  const relatedArticles = analysis?.embedding
+    ? await getRelatedArticles(article.id, analysis.embedding)
+    : []
 
   return (
     <div className="flex min-h-screen bg-neutral-50 font-sans">
@@ -117,6 +120,41 @@ export default async function NewsDetailsPage({ params }: PageProps) {
                 <div className="rounded-xl border border-dashed border-neutral-300 px-5 py-8 text-center text-sm text-neutral-500">
                   AI analysis has not been generated for this article yet.
                 </div>
+              )}
+
+              {relatedArticles.length > 0 && (
+                <section className="space-y-4 border-t border-neutral-200 pt-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-neutral-900">Related Articles</h2>
+                    <p className="mt-1 text-sm text-neutral-500">Similar reporting, based on article meaning.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {relatedArticles.map((relatedArticle) => (
+                      <Link
+                        key={relatedArticle.id}
+                        href={`/news/${relatedArticle.id}`}
+                        className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition-shadow hover:shadow-md"
+                      >
+                        <div className="flex gap-3 p-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={relatedArticle.imageUrl} alt="" className="h-20 w-24 shrink-0 rounded-lg object-cover" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold text-neutral-500">
+                              <span className="truncate">{relatedArticle.source}</span>
+                              <span>{Math.round(relatedArticle.similarity * 100)}% similar</span>
+                            </div>
+                            <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-neutral-900 group-hover:text-blue-700">
+                              {relatedArticle.title}
+                            </h3>
+                            <time className="mt-1 block text-[11px] text-neutral-500" dateTime={relatedArticle.publishedAt}>
+                              {dateFormatter.format(new Date(relatedArticle.publishedAt))}
+                            </time>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
               )}
             </article>
 

@@ -3,12 +3,15 @@ import "server-only"
 import {
   analyzeArticle,
   assertAnalysisConfiguration,
+  embedArticle,
+  getEmbeddingModelName,
   getAnalysisModelName,
 } from "@/lib/ai/article-analysis"
 import type { AnalysisFailure, AnalysisRunSummary } from "@/lib/ai/types"
 import {
   getPendingArticlesSnapshot,
   saveArticleAnalysis,
+  saveArticleEmbedding,
   writeAnalysisLog,
 } from "@/lib/supabase/queries/analysis"
 
@@ -43,6 +46,8 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
   const selected = snapshot.articles
   const failures: AnalysisFailure[] = []
   let analyzed = 0
+  let embedded = 0
+  let backfilled = 0
   let skipped = 0
   let batches = 0
 
@@ -51,6 +56,7 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
     selected: selected.length,
     batchSize,
     model,
+    embeddingModel: getEmbeddingModelName(),
   })
   await writeAnalysisLog({
     level: "info",
@@ -78,30 +84,69 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
         continue
       }
 
+      if (article.existingAnalysis) {
+        try {
+          const embedding = await embedArticle({
+            title: article.title,
+            summary: article.existingAnalysis.summary,
+            rawText: article.rawText,
+          })
+          await saveArticleEmbedding(article.id, embedding, false)
+          embedded += 1
+          backfilled += 1
+          console.info("[Analysis] Article embedding backfilled", { articleId: article.id })
+          await writeAnalysisLog({
+            level: "success",
+            event: "analysis_embedding_backfilled",
+            message: "Article embedding backfilled without rerunning analysis.",
+            metadata: { embedding_model: getEmbeddingModelName() },
+            articleId: article.id,
+          })
+        } catch {
+          failures.push({ articleId: article.id, reason: "embedding_failed" })
+          console.error("[Analysis] Article embedding backfill failed", { articleId: article.id })
+          await writeAnalysisLog({
+            level: "error",
+            event: "analysis_failed",
+            message: "Article embedding backfill could not be completed.",
+            metadata: { reason: "embedding_failed", embedding_model: getEmbeddingModelName() },
+            articleId: article.id,
+          })
+        }
+        continue
+      }
+
       try {
         const analysis = await analyzeArticle({ title: article.title, rawText: article.rawText })
         try {
           await saveArticleAnalysis(article.id, analysis)
+          const embedding = await embedArticle({
+            title: article.title,
+            summary: analysis.summary,
+            rawText: article.rawText,
+          })
+          await saveArticleEmbedding(article.id, embedding, true)
         } catch {
-          failures.push({ articleId: article.id, reason: "persistence_failed" })
-          console.error("[Analysis] Article persistence failed", { articleId: article.id })
+          failures.push({ articleId: article.id, reason: "embedding_failed" })
+          console.error("[Analysis] Article analysis or embedding persistence failed", { articleId: article.id })
           await writeAnalysisLog({
             level: "error",
             event: "analysis_failed",
-            message: "A valid AI analysis could not be saved.",
-            metadata: { reason: "persistence_failed" },
+            message: "A valid AI analysis or its embedding could not be saved.",
+            metadata: { reason: "embedding_failed", embedding_model: getEmbeddingModelName() },
             articleId: article.id,
           })
           continue
         }
 
         analyzed += 1
+        embedded += 1
         console.info("[Analysis] Article analyzed", { articleId: article.id })
         await writeAnalysisLog({
           level: "success",
           event: "analysis_completed_article",
           message: "Article analysis completed.",
-          metadata: { model },
+          metadata: { model, embedding_model: getEmbeddingModelName() },
           articleId: article.id,
         })
       } catch {
@@ -123,6 +168,8 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
     pending: snapshot.pending,
     selected: selected.length,
     analyzed,
+    embedded,
+    backfilled,
     skipped,
     failed: failures.length,
     batches,
@@ -141,6 +188,8 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
       pending: summary.pending,
       selected: summary.selected,
       analyzed: summary.analyzed,
+      embedded: summary.embedded,
+      backfilled: summary.backfilled,
       skipped: summary.skipped,
       failed: summary.failed,
       batches: summary.batches,
@@ -151,4 +200,3 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
 
   return summary
 }
-
