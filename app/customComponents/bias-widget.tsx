@@ -7,6 +7,9 @@ import type { BiasOverviewData } from "@/lib/supabase/queries/articles"
 interface BiasWidgetProps {
   overview: BiasOverviewData
 }
+/**
+ * Render average framing percentages and an empty state when no analyses exist.
+ */
 export default function BiasWidget({ overview }: BiasWidgetProps) {
   const stats = [
     { label: "Left", value: overview.left, color: "bg-blue-600" },

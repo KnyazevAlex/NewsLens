@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Show, SignInButton, UserButton } from "@clerk/nextjs" // Updated import[cite: 7]
 
+/**
+ * Render the news toolbar with search controls and Clerk sign-in or account controls.
+ */
 export default function Header() {
   return (
     <header className="h-20 bg-neutral-50/80 backdrop-blur-sm border-b border-neutral-200 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 sticky top-0 z-20">

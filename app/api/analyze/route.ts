@@ -14,6 +14,10 @@ const analyzeRequestSchema = z.object({
   batchSize: z.number().int().min(1).max(10).optional(),
 }).strict()
 
+/**
+ * Parse JSON or return an empty object for a blank body.
+ * @throws {SyntaxError} If the body exceeds 10,000 characters or contains invalid JSON.
+ */
 async function readRequestBody(request: Request) {
   const rawBody = await request.text()
   if (rawBody.length > MAX_REQUEST_CHARACTERS) throw new SyntaxError("Request body is too large")
@@ -21,6 +25,10 @@ async function readRequestBody(request: Request) {
   return JSON.parse(rawBody) as unknown
 }
 
+/**
+ * Authorize an admin request, validate analysis options, and return the run summary.
+ * Returns 401 for unauthorized requests, 400 for invalid input, or 500 on failure.
+ */
 export async function POST(request: Request) {
   try {
     if (!isAuthorizedAdminRequest(request)) {

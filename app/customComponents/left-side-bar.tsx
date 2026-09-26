@@ -2,6 +2,9 @@ import { Home, TrendingUp, Layers, Bookmark, History, Filter, Search, FileText }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+/**
+ * Render the desktop sidebar with news navigation and filter controls.
+ */
 const LeftSideBar = () => {
     return (
            <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col justify-between flex-shrink-0 sticky top-0 h-screen">

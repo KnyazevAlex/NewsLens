@@ -104,3 +104,8 @@ In order to debloat pages and make populating components with real data and remo
 * **Features Added:** Added nullable 1536-dimensional pgvector embeddings, an IVFFlat cosine index, and a service-role-only `get_related_articles` RPC. The analysis endpoint now creates Gemini `gemini-embedding-2` vectors for new analyses and backfills missing vectors without rerunning Gemini framing analysis. Eligible article details display up to five cosine-similar articles.
 * **Approach & Why:** Reused the existing server-only Gemini key and AI SDK Google provider, requested 1536 dimensions, and normalized vector values returned by PostgREST before use. The RPC performs filtering/ranking in Postgres because the REST client cannot directly issue pgvector cosine-distance operators. The current article is excluded and only analyzed, embedded rows can match.
 * **Verification:** `npm run typecheck`, `npm run lint`, and network-enabled `npm run build` passed. The migration was generated locally but still needs to be applied to the target Supabase project before live database/API verification.
+
+## [9/26/2026] - Documented PR #1 Functions
+
+* **Files Changed:** API route handlers, updated homepage/detail components, and function-bearing modules under `lib/ai`, `lib/analysis`, `lib/oxylabs`, `lib/scraping`, `lib/security`, and `lib/supabase`.
+* **Approach & Why:** Added JSDoc for existing functions and error constructors to address the PR's 80% docstring coverage requirement, describing return values, side effects, and failure cases without changing executable code.

@@ -24,6 +24,9 @@ export interface RunAnalysisOptions {
   batchSize?: number
 }
 
+/**
+ * Read ANALYSIS_BATCH_SIZE as an integer from 1 to 10, defaulting to five.
+ */
 function configuredBatchSize() {
   const configured = Number.parseInt(process.env.ANALYSIS_BATCH_SIZE ?? "", 10)
   return Number.isInteger(configured) && configured >= 1 && configured <= 10
@@ -31,11 +34,19 @@ function configuredBatchSize() {
     : DEFAULT_BATCH_SIZE
 }
 
+/**
+ * Classify a run from newly analyzed and failed counts; zero failures means success.
+ */
 function getStatus(analyzed: number, failed: number): AnalysisRunSummary["status"] {
   if (failed === 0) return "success"
   return analyzed > 0 ? "partial" : "failed"
 }
 
+/**
+ * Process a pending-article snapshot sequentially in batches and return run counts.
+ * Generate missing analyses, backfill missing embeddings, skip insufficient content,
+ * and persist progress logs. Configuration, snapshot, or logging errors can propagate.
+ */
 export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<AnalysisRunSummary> {
   assertAnalysisConfiguration()
 

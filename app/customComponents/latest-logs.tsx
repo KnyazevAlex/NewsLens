@@ -18,6 +18,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 })
 
+/**
+ * Choose a log icon by severity first, then by schedule or article event type.
+ */
 function LogIcon({ log }: { log: LogItemData }) {
   if (log.level === "error") return <AlertCircle className="h-4 w-4 text-red-500" />
   if (log.level === "success") return <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -26,6 +29,9 @@ function LogIcon({ log }: { log: LogItemData }) {
   return <Clock className="h-4 w-4 text-orange-500" />
 }
 
+/**
+ * Render recent pipeline activity with UTC timestamps, or an empty state.
+ */
 export default function LatestLogs({ logs }: LatestLogsProps) {
   return (
     <motion.section

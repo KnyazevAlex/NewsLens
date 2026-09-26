@@ -65,6 +65,7 @@ const validatedAnalysisSchema = generationSchema
   })
 
 export class AnalysisConfigurationError extends Error {
+  /** Create an error for a missing or blank Gemini API key. */
   constructor() {
     super("Missing required server configuration: GEMINI_API_KEY")
     this.name = "AnalysisConfigurationError"
@@ -72,6 +73,7 @@ export class AnalysisConfigurationError extends Error {
 }
 
 export class ArticleAnalysisGenerationError extends Error {
+  /** Create an error for exhausted article-analysis generation attempts. */
   constructor() {
     super("Unable to generate a valid article analysis.")
     this.name = "ArticleAnalysisGenerationError"
@@ -79,33 +81,53 @@ export class ArticleAnalysisGenerationError extends Error {
 }
 
 export class ArticleEmbeddingGenerationError extends Error {
+  /** Create an error for failed or invalid article-embedding generation. */
   constructor() {
     super("Unable to generate a valid article embedding.")
     this.name = "ArticleEmbeddingGenerationError"
   }
 }
 
+/**
+ * Return the configured Gemini analysis model, falling back to the default model.
+ */
 export function getAnalysisModelName() {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL
 }
 
+/**
+ * Return the configured Gemini embedding model, falling back to the default model.
+ */
 export function getEmbeddingModelName() {
   return process.env.GEMINI_EMBEDDING_MODEL?.trim() || DEFAULT_EMBEDDING_MODEL
 }
 
+/**
+ * Verify that a nonblank Gemini API key is configured.
+ * @throws {AnalysisConfigurationError} If GEMINI_API_KEY is missing or blank.
+ */
 export function assertAnalysisConfiguration() {
   if (!process.env.GEMINI_API_KEY?.trim()) throw new AnalysisConfigurationError()
 }
 
+/**
+ * Collapse whitespace and truncate article text to the analysis character limit.
+ */
 function normalizeArticleText(value: string) {
   return value.replace(/\s+/g, " ").trim().slice(0, MAX_ARTICLE_CHARACTERS)
 }
 
+/**
+ * Combine the title, neutral summary, and truncated body into embedding input.
+ */
 function buildEmbeddingInput(input: { title: string; summary: string; rawText: string }) {
   const body = normalizeArticleText(input.rawText).slice(0, MAX_EMBEDDING_CHARACTERS)
   return `Title: ${input.title.trim()}\n\nNeutral summary: ${input.summary.trim()}\n\nArticle body: ${body}`
 }
 
+/**
+ * Build analysis instructions with the title and body delimited as untrusted article data.
+ */
 function buildPrompt(title: string, articleText: string) {
   return `Analyze the news article below using only its supplied title and body.
 
@@ -129,11 +151,20 @@ ${articleText}
 </article-body>`
 }
 
+/**
+ * Check that every loaded term occurs in the article text, ignoring letter case.
+ */
 function loadedTermsAppearInText(loadedTerms: string[], articleText: string) {
   const searchableText = articleText.toLocaleLowerCase("en-US")
   return loadedTerms.every((term) => searchableText.includes(term.toLocaleLowerCase("en-US")))
 }
 
+/**
+ * Generate and validate article framing analysis, retrying up to three total attempts.
+ * Returns validated fields with the derived bias score, disclaimer, and model name.
+ * @throws {AnalysisConfigurationError} If the Gemini API key is unavailable.
+ * @throws {ArticleAnalysisGenerationError} If all generation or validation attempts fail.
+ */
 export async function analyzeArticle(input: {
   title: string
   rawText: string
@@ -188,6 +219,12 @@ export async function analyzeArticle(input: {
   throw new ArticleAnalysisGenerationError()
 }
 
+/**
+ * Generate a finite 1536-dimensional vector from the title, summary, and article body.
+ * The provider call allows two retries.
+ * @throws {AnalysisConfigurationError} If the Gemini API key is unavailable.
+ * @throws {ArticleEmbeddingGenerationError} If generation fails or the vector is invalid.
+ */
 export async function embedArticle(input: {
   title: string
   summary: string

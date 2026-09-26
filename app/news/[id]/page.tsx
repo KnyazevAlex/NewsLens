@@ -33,10 +33,17 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 })
 
+/**
+ * Capitalize the first character of a label without changing the remaining text.
+ */
 function titleCase(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+/**
+ * Require authentication and render an article, its analysis, and related articles.
+ * Triggers the not-found response when the requested article does not exist.
+ */
 export default async function NewsDetailsPage({ params }: PageProps) {
   await auth.protect()
 

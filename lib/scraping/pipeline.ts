@@ -14,6 +14,7 @@ import type { Json } from "@/lib/supabase/types"
 const MAX_CANDIDATES_PER_SOURCE = 80
 
 export class SourceSelectionError extends Error {
+  /** Create an error explaining why selected sources cannot be scraped. */
   constructor(message: string) {
     super(message)
     this.name = "SourceSelectionError"
@@ -25,18 +26,30 @@ interface RunScrapeInput {
   limitPerSource: number
 }
 
+/**
+ * Add an occurrence count to a rejection reason in the mutable run summary.
+ */
 function incrementReason(summary: ScrapeSummary, reason: string, amount = 1) {
   summary.rejectionReasons[reason] = (summary.rejectionReasons[reason] ?? 0) + amount
 }
 
+/**
+ * Accumulate extraction rejection counts into the mutable run summary.
+ */
 function mergeReasons(summary: ScrapeSummary, reasons: Record<string, number>) {
   for (const [reason, count] of Object.entries(reasons)) incrementReason(summary, reason, count)
 }
 
+/**
+ * Write a scrape event and its metadata to the informational console log.
+ */
 function logConsole(event: string, metadata: Record<string, unknown> = {}) {
   console.info(`[Scrape] ${event}`, metadata)
 }
 
+/**
+ * Write an event to the console and attempt database logging without propagating logging failures.
+ */
 async function logEvent(input: {
   level?: "debug" | "info" | "warning" | "error" | "success"
   event: string
@@ -58,11 +71,18 @@ async function logEvent(input: {
   }
 }
 
+/**
+ * Return an Oxylabs error message or a generic message for other failures.
+ */
 function safeFailureMessage(error: unknown) {
   if (error instanceof OxylabsError) return error.message
   return "Scraping operation failed"
 }
 
+/**
+ * Load selected active sources, or all active sources when no IDs are supplied.
+ * @throws {SourceSelectionError} If any requested source is missing or inactive.
+ */
 async function resolveSources(sourceIds?: string[]) {
   const sources = await listActiveScrapingSources(sourceIds)
   if (!sourceIds?.length) return sources
@@ -75,6 +95,10 @@ async function resolveSources(sourceIds?: string[]) {
   return sources
 }
 
+/**
+ * Fetch a source homepage and insert valid, unique articles up to the source limit.
+ * Update the shared run counters and return source counts with completion status.
+ */
 async function processSource(
   source: ScrapingSource,
   limitPerSource: number,
@@ -220,6 +244,11 @@ async function processSource(
   return { sourceSummary, completed: true }
 }
 
+/**
+ * Scrape selected active sources sequentially and return aggregate counts and status.
+ * Persist operational logs and collect source and article failures in the summary.
+ * Configuration errors and source-selection errors propagate to the caller.
+ */
 export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSummary> {
   const startedAt = Date.now()
   assertOxylabsConfiguration()

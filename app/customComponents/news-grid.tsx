@@ -18,16 +18,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 })
 
+/**
+ * Capitalize a framing label, falling back to "Not analyzed" when absent.
+ */
 function formatBiasLabel(label: NewsCardData["biasLabel"]) {
   if (!label) return "Not analyzed"
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+/**
+ * Capitalize a sentiment label, falling back to "Pending" when absent.
+ */
 function formatSentimentLabel(label: NewsCardData["sentimentLabel"]) {
   if (!label) return "Pending"
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+/**
+ * Render linked article cards with available analysis metrics, or an empty feed state.
+ */
 export default function NewsGrid({ articles }: NewsGridProps) {
   if (!articles.length) {
     return (
