@@ -9,7 +9,8 @@ import type { BiasLabel, GeneratedArticleAnalysis } from "@/lib/ai/types"
 const DEFAULT_MODEL = "gemini-3.6-flash"
 const MAX_ARTICLE_CHARACTERS = 60_000
 const MAX_EMBEDDING_CHARACTERS = 24_000
-const MAX_GENERATION_ATTEMPTS = 2
+const MAX_GENERATION_ATTEMPTS = 3
+const RETRY_DELAYS = [2000, 5000] // in milliseconds
 export const EMBEDDING_DIMENSIONS = 1536
 const DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 
@@ -144,7 +145,7 @@ export async function analyzeArticle(input: {
   const articleText = normalizeArticleText(input.rawText)
   const google = createGoogleGenerativeAI({ apiKey })
 
-  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
     try {
       const result = await generateText({
         model: google(modelName),
@@ -170,10 +171,16 @@ export async function analyzeArticle(input: {
         model: modelName,
       }
     } catch (error) {
-      console.warn("[Analysis] Gemini attempt failed", {
-        attempt,
+        console.error(`[Analysis] Attempt ${attempt} failed`, {
         errorType: error instanceof Error ? error.name : "UnknownError",
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        error
       })
+
+      if (attempt < MAX_GENERATION_ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+     
       if (attempt === MAX_GENERATION_ATTEMPTS) throw new ArticleAnalysisGenerationError()
     }
   }
@@ -196,7 +203,7 @@ export async function embedArticle(input: {
       providerOptions: {
         google: { outputDimensionality: EMBEDDING_DIMENSIONS },
       },
-      maxRetries: 1,
+      maxRetries: 2,
     })
 
     if (result.embedding.length !== EMBEDDING_DIMENSIONS || result.embedding.some((value) => !Number.isFinite(value))) {
@@ -205,8 +212,10 @@ export async function embedArticle(input: {
 
     return result.embedding
   } catch (error) {
-    console.warn("[Analysis] Gemini embedding failed", {
+    console.error("[Analysis] Gemini embedding failed", {
       errorType: error instanceof Error ? error.name : "UnknownError",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      error 
     })
     throw new ArticleEmbeddingGenerationError()
   }
