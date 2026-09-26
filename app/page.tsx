@@ -1,109 +1,72 @@
-"use client"
+import { ChevronDown } from "lucide-react"
+import { connection } from "next/server"
 
-import { motion, Variants } from "motion/react"
-import LeftSideBar from "@/app/customComponents/left-side-bar"
-import Link from "next/link"
-import { 
-  FileText, ChevronDown, 
-  CheckCircle2, Calendar, Clock
-} from "lucide-react"
-import Header from "@/app/customComponents/header"
-import { Button } from "@/components/ui/button"
-import { BiasBadge } from "@/app/customComponents/bias-badge"
-import NewsGrid from "@/app/customComponents/news-grid"
 import BiasWidget from "@/app/customComponents/bias-widget"
+import Header from "@/app/customComponents/header"
 import LatestLogs from "@/app/customComponents/latest-logs"
-import { BiasRatingIndicator } from "@/app/customComponents/bias-rating"
+import LeftSideBar from "@/app/customComponents/left-side-bar"
+import NewsGrid from "@/app/customComponents/news-grid"
+import { Button } from "@/components/ui/button"
+import { getBiasOverview, getRecentArticles } from "@/lib/supabase/queries/articles"
+import { getRecentLogs } from "@/lib/supabase/queries/logs"
 
-// --- Animation Variants ---
-const containerVariants: Variants = {
-  closed: { opacity: 0 },
-  open: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-}
+/**
+ * Load articles, framing averages, and recent logs concurrently for the dynamic homepage.
+ */
+export default async function HomePage() {
+  await connection()
 
-export default function HomePage() {
+  const [articles, biasOverview, logs] = await Promise.all([
+    getRecentArticles(),
+    getBiasOverview(),
+    getRecentLogs(),
+  ])
+
   return (
     <div className="flex min-h-screen bg-neutral-50 font-sans">
-      
-      {/* --- LEFT SIDEBAR (Hidden on mobile, visible on lg screens) --- */}
+      <LeftSideBar />
 
-      <LeftSideBar></LeftSideBar>
-
-      {/* --- MAIN CONTENT AREA --- */}
-      <main className="flex-1 flex flex-col min-w-0">
-        
-        {/* Top Header */}
+      <main className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        {/* Scrollable Dashboard Area */}
         <div className="flex-1 p-4 sm:p-8">
-          <div className="flex flex-col lg:flex-row gap-8 max-w-[1600px] mx-auto">
-            
-            {/* Center Column (News Feed) */}
-            <motion.div 
-              className="flex-1 flex flex-col gap-6 min-w-0"
-              variants={containerVariants}
-              initial="closed"
-              animate="open"
-            >
-              {/* Category Pills */}
+          <div className="mx-auto flex max-w-[1600px] flex-col gap-8 lg:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col gap-6">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide w-full">
-                  {["All", "Politics", "Business", "Technology", "Science", "Environment"].map((cat, i) => (
-                    <button 
-                      key={cat}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                        i === 0 
-                          ? "bg-white border-2 border-[#2563EB] text-[#2563EB] shadow-sm" 
-                          : "bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 shadow-sm"
+                <div className="scrollbar-hide flex w-full items-center gap-2 overflow-x-auto pb-1">
+                  {["All", "Politics", "Business", "Technology", "Science", "Environment"].map((category, index) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium shadow-sm transition-colors ${
+                        index === 0
+                          ? "border-2 border-[#2563EB] bg-white text-[#2563EB]"
+                          : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
                       }`}
                     >
-                      {cat}
+                      {category}
                     </button>
                   ))}
                 </div>
-                <Button variant="outline" className="hidden sm:flex gap-2 bg-white shadow-sm border-neutral-200 text-neutral-700 flex-shrink-0">
-                  Latest <ChevronDown className="w-4 h-4 text-neutral-400" />
+                <Button variant="outline" className="hidden shrink-0 gap-2 border-neutral-200 bg-white text-neutral-700 shadow-sm sm:flex">
+                  Latest <ChevronDown className="h-4 w-4 text-neutral-400" />
                 </Button>
               </div>
 
-              {/* News Grid */}
-              
-           <NewsGrid></NewsGrid>
+              <NewsGrid articles={articles} />
 
-              <div className="flex justify-center pt-4 pb-8">
-                <Button variant="outline" className="bg-[#F8FAFC] text-[#2563EB] border-[#DBEAFE] hover:bg-[#EFF6FF] px-8">
-                  Load more
-                </Button>
-              </div>
-              
-              <footer className="text-center text-[11px] text-neutral-400 pb-4 flex flex-wrap justify-center gap-4">
-                <span> {new Date().getFullYear() } All rights reserved.</span>
+              <footer className="flex flex-wrap justify-center gap-4 pb-4 pt-4 text-center text-[11px] text-neutral-400">
+                <span>{new Date().getFullYear()} All rights reserved.</span>
                 <a href="#" className="hover:text-neutral-600">Privacy</a>
                 <a href="#" className="hover:text-neutral-600">Terms</a>
                 <a href="#" className="hover:text-neutral-600">Contact</a>
               </footer>
-            </motion.div>
+            </div>
 
-            {/* Right Sidebar (Widgets) */}
-            <motion.div 
-              className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6"
-              variants={containerVariants}
-              initial="closed"
-              animate="open"
-            >
-              
-              {/* Redesigned Bias Balance Widget */}
-              <BiasWidget></BiasWidget>
-
-              {/* Latest Logs Widget */}
-          
-              <LatestLogs></LatestLogs>
-
-            </motion.div>
+            <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-80">
+              <BiasWidget overview={biasOverview} />
+              <LatestLogs logs={logs} />
+            </aside>
           </div>
         </div>
       </main>

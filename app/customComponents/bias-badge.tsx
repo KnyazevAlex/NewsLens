@@ -8,8 +8,10 @@ const biasBadgeVariants = cva(
       variant: {
         left: "bg-[#DBEAFE] text-[#2563EB]",
         neutral: "bg-[#E2E8F0] text-[#64748B]",
+        center: "bg-[#E2E8F0] text-[#475569]",
         right: "bg-[#FEE2E2] text-[#EF4444]",
         mixed: "bg-[#F3E8FF] text-[#8B5CF6]",
+        unclear: "border border-neutral-200 bg-white text-neutral-500",
       },
     },
     defaultVariants: {
@@ -27,4 +29,4 @@ export function BiasBadge({ className, variant, ...props }: BiasBadgeProps) {
     <div className={cn(biasBadgeVariants({ variant }), className)} {...props} />
   )
 }
-export {biasBadgeVariants}
+export { biasBadgeVariants }
