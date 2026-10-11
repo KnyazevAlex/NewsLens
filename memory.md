@@ -77,3 +77,35 @@ Such as:
 * `latest-logs.tsx`
 
 In order to debloat pages and make populating components with real data and removing mock data easier.
+
+## [8/17/2026] - Implemented Supabase Persistence
+
+* **Files Created/Changed:** `supabase/schema.sql`, `supabase/seed.sql`, `lib/supabase/types.ts`, `lib/supabase/server.ts`, `lib/supabase/queries/articles.ts`, `lib/supabase/queries/logs.ts`, `app/page.tsx`, `app/news/[id]/page.tsx`, `app/customComponents/news-grid.tsx`, `app/customComponents/bias-widget.tsx`, `app/customComponents/latest-logs.tsx`; removed the unused `app/data/data/mock-news.ts` fixture.
+* **Features Added:** Created the six core Supabase tables with constraints, indexes, RLS, and least-privilege grants; added idempotent demo seed data; added a typed server-only service-role client and query layer; replaced homepage and article-detail mock reads with live persisted articles, analyses, aggregate framing metrics, and logs.
+* **Approach & Why:** Kept Clerk as the only authentication provider and all Supabase access server-side. Browser roles have no table privileges, while request-time rendering keeps database content current. Demo sources are inactive and use `.invalid` URLs so seeded UI content can never be mistaken for production scraping configuration.
+* **Remote State:** Applied the `initial_biasly_persistence` migration and seed to the NewsLens Supabase project. Verified 6 sources, 6 articles, 2 analyses, and 3 logs; all six tables have RLS enabled, service-role reads succeed, and publishable-key article reads are denied.
+
+## [9/8/2026] - Implemented Manual Oxylabs Scraping
+
+* **Files Created/Changed:** Added the server-only Oxylabs client, scraping URL/parser/pipeline modules, Supabase scraping queries, admin-secret guard, `GET /api/sources`, and `POST /api/scrape`; added `.env.example`; updated `.gitignore`, `package.json`, and `package-lock.json` for exact Cheerio/Zod dependencies and a typecheck script.
+* **Features Added:** Manual scraping now loads active Supabase sources, fetches homepages and article details through Oxylabs Realtime, conservatively filters story URLs, validates required article metadata and meaningful prose, checks original/canonical URL duplicates in chunks, inserts append-only article rows, and emits console/database logs plus a typed run summary.
+* **Approach & Why:** Kept provider, parsing, persistence, pipeline, security, and HTTP layers separate. Source URLs remain database-driven, action access is protected by a server-only admin secret, and bounded sequential requests reduce accidental Oxylabs spend. Scheduling, cron, and AI analysis were intentionally left out of this change.
+
+## [9/16/2026] - Implemented Gemini AI Analysis and UI Framing
+
+* **Files Created/Changed:** Added `lib/ai/article-analysis.ts`, `lib/ai/types.ts`, `lib/analysis/pipeline.ts`, `lib/supabase/queries/analysis.ts`, `app/api/analyze/route.ts`, `app/customComponents/framing-distribution.tsx`, and `.env.example`; updated article queries, framing badges, homepage cards, the news detail page, package dependencies, and `prompts/ai-analysis.md`.
+* **Features Added:** Added protected, batched `POST /api/analyze` processing for all articles missing an analysis row; Gemini structured-output generation with Zod and semantic validation, one retry, derived bias scores, safe logging, and post-save `analyzed_at`; added sentiment, AI-estimated framing badges, confidence, and accessible left/center/right distributions to cards and details.
+* **Approach & Why:** Used the direct Gemini Developer API through pinned Vercel AI SDK packages with server-only credentials. Runtime verification showed `gemini-2.5-flash` is unavailable to new accounts, so the default is the stable, structured-output-capable free-tier `gemini-3.6-flash`, with `GEMINI_MODEL` available as an override. Pending work is detected from the left-joined `article_analyses` relationship rather than `analyzed_at`.
+* **Verification:** `npm run typecheck`, `npm run lint`, and `npm run build` completed without errors. A bounded live run analyzed and saved one pending article, and browser verification confirmed its homepage card displayed sentiment, confidence, and a 45/35/20 framing distribution. The protected detail route redirected an unauthenticated browser to Clerk as expected.
+
+## [9/21/2026] - Implemented pgvector Related Articles
+
+* **Files Created/Changed:** Added the generated `supabase/migrations/20260922015655_pgvector_related_articles.sql` migration and updated `supabase/schema.sql`, Supabase types/query helpers, the Gemini analysis pipeline, the article detail page, `.env.example`, and `prompts/pgvector-related-articles.md`.
+* **Features Added:** Added nullable 1536-dimensional pgvector embeddings, an IVFFlat cosine index, and a service-role-only `get_related_articles` RPC. The analysis endpoint now creates Gemini `gemini-embedding-2` vectors for new analyses and backfills missing vectors without rerunning Gemini framing analysis. Eligible article details display up to five cosine-similar articles.
+* **Approach & Why:** Reused the existing server-only Gemini key and AI SDK Google provider, requested 1536 dimensions, and normalized vector values returned by PostgREST before use. The RPC performs filtering/ranking in Postgres because the REST client cannot directly issue pgvector cosine-distance operators. The current article is excluded and only analyzed, embedded rows can match.
+* **Verification:** `npm run typecheck`, `npm run lint`, and network-enabled `npm run build` passed. The migration was generated locally but still needs to be applied to the target Supabase project before live database/API verification.
+
+## [9/26/2026] - Documented PR #1 Functions
+
+* **Files Changed:** API route handlers, updated homepage/detail components, and function-bearing modules under `lib/ai`, `lib/analysis`, `lib/oxylabs`, `lib/scraping`, `lib/security`, and `lib/supabase`.
+* **Approach & Why:** Added JSDoc for existing functions and error constructors to address the PR's 80% docstring coverage requirement, describing return values, side effects, and failure cases without changing executable code.
