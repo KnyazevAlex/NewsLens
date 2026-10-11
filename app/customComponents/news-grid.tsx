@@ -3,6 +3,7 @@
 import { Bookmark } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
+import posthog from "posthog-js"
 
 import { BiasBadge } from "@/app/customComponents/bias-badge"
 import { FramingDistribution } from "@/app/customComponents/framing-distribution"
@@ -43,7 +44,18 @@ export default function NewsGrid({ articles }: NewsGridProps) {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
       {articles.map((article, index) => (
-        <Link href={`/news/${article.id}`} key={article.id} className="block">
+        <Link
+          href={`/news/${article.id}`}
+          key={article.id}
+          className="block"
+          onClick={() => {
+            posthog.capture("article_opened", {
+              article_id: article.id,
+              source: article.source,
+              analysis_available: Boolean(article.biasLabel),
+            })
+          }}
+        >
           <motion.article
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}

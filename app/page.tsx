@@ -16,7 +16,7 @@ export default async function HomePage() {
   const [articles, biasOverview, logs] = await Promise.all([
     getRecentArticles(),
     getBiasOverview(),
-    getRecentLogs(),
+    getRecentLogs(5),
   ])
 
   return (

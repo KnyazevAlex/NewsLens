@@ -16,6 +16,7 @@ import { BiasRatingIndicator } from "@/app/customComponents/bias-rating"
 import { FramingDistribution } from "@/app/customComponents/framing-distribution"
 import Header from "@/app/customComponents/header"
 import LeftSideBar from "@/app/customComponents/left-side-bar"
+import Share from "@/app/customComponents/share"
 import { Button } from "@/components/ui/button"
 import { getArticleById, getRelatedArticles } from "@/lib/supabase/queries/articles"
 
@@ -78,9 +79,7 @@ export default async function NewsDetailsPage({ params }: PageProps) {
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-neutral-900" aria-label="Bookmark article">
                       <Bookmark className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-neutral-900" aria-label="Share article">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
+                    <Share />
                   </div>
                 </div>
 

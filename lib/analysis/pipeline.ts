@@ -1,5 +1,7 @@
 import "server-only"
 
+import { randomUUID } from "node:crypto"
+
 import {
   analyzeArticle,
   assertAnalysisConfiguration,
@@ -40,6 +42,7 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
   assertAnalysisConfiguration()
 
   const startedAt = Date.now()
+  const observabilitySessionId = `analysis-${randomUUID()}`
   const model = getAnalysisModelName()
   const batchSize = options.batchSize ?? configuredBatchSize()
   const snapshot = await getPendingArticlesSnapshot(options)
@@ -117,7 +120,11 @@ export async function runArticleAnalysis(options: RunAnalysisOptions): Promise<A
       }
 
       try {
-        const analysis = await analyzeArticle({ title: article.title, rawText: article.rawText })
+        const analysis = await analyzeArticle({
+          title: article.title,
+          rawText: article.rawText,
+          observability: { sessionId: observabilitySessionId },
+        })
         try {
           await saveArticleAnalysis(article.id, analysis)
           const embedding = await embedArticle({

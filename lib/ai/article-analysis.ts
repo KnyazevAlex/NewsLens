@@ -17,6 +17,10 @@ const DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 export const AI_ANALYSIS_DISCLAIMER =
   "This political-framing assessment is AI-estimated from the article's language and is not an objective determination of truth, intent, or source ideology."
 
+export interface AnalysisObservabilityContext {
+  sessionId: string
+}
+
 const generationSchema = z.object({
   summary: z.string().describe("A concise, neutral summary of the article."),
   sentimentScore: z.number().describe("Overall tone from -1 (negative) to 1 (positive)."),
@@ -137,6 +141,7 @@ function loadedTermsAppearInText(loadedTerms: string[], articleText: string) {
 export async function analyzeArticle(input: {
   title: string
   rawText: string
+  observability: AnalysisObservabilityContext
 }): Promise<GeneratedArticleAnalysis> {
   assertAnalysisConfiguration()
 
@@ -155,6 +160,17 @@ export async function analyzeArticle(input: {
           schema: generationSchema,
         }),
         prompt: buildPrompt(input.title, articleText),
+        runtimeContext: {
+          sessionId: input.observability.sessionId,
+          traceName: "article-analysis",
+        },
+        telemetry: {
+          functionId: "article-analysis",
+          includeRuntimeContext: {
+            sessionId: true,
+            traceName: true,
+          },
+        },
         maxRetries: 0,
         timeout: 60_000,
       })
@@ -202,6 +218,9 @@ export async function embedArticle(input: {
       value: buildEmbeddingInput(input),
       providerOptions: {
         google: { outputDimensionality: EMBEDDING_DIMENSIONS },
+      },
+      telemetry: {
+        functionId: "article-embedding",
       },
       maxRetries: 2,
     })

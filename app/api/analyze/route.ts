@@ -1,5 +1,7 @@
+import { SeverityNumber } from "@opentelemetry/api-logs"
 import { z } from "zod"
 
+import { emitPostHogLog, flushAiObservability, flushPostHogLogs } from "@/instrumentation"
 import { runArticleAnalysis } from "@/lib/analysis/pipeline"
 import { AnalysisConfigurationError } from "@/lib/ai/article-analysis"
 import { AdminSecretConfigurationError, isAuthorizedAdminRequest } from "@/lib/security/admin-secret"
@@ -36,7 +38,19 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    emitPostHogLog(SeverityNumber.INFO, "Article analysis request started", {
+      operation: "article_analysis",
+    })
+
     const summary = await runArticleAnalysis(parsed.data)
+    emitPostHogLog(SeverityNumber.INFO, "Article analysis request completed", {
+      operation: "article_analysis",
+      status: summary.status,
+      selected: summary.selected,
+      analyzed: summary.analyzed,
+      skipped: summary.skipped,
+      failed: summary.failed,
+    })
     return Response.json(summary)
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -47,8 +61,15 @@ export async function POST(request: Request) {
       return Response.json({ error: "Analysis server configuration is incomplete." }, { status: 500 })
     }
 
+    const errorType = error instanceof Error ? error.name : "UnknownError"
     console.error("[API] Article analysis failed", error)
+    emitPostHogLog(SeverityNumber.ERROR, "Article analysis request failed", {
+      operation: "article_analysis",
+      error_type: errorType,
+    })
     return Response.json({ error: "Unable to complete article analysis." }, { status: 500 })
+  } finally {
+    await Promise.all([flushAiObservability(), flushPostHogLogs()])
   }
 }
 

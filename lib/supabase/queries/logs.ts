@@ -24,7 +24,7 @@ function metadataDetail(metadata: Json): string | null {
   return typeof count === "number" ? `${count} articles` : null
 }
 
-export async function getRecentLogs(limit = 5): Promise<LogItemData[]> {
+export async function getRecentLogs(limit: number): Promise<LogItemData[]> {
   const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from("logs")
