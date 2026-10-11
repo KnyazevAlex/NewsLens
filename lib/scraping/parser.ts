@@ -45,10 +45,16 @@ interface ArticleMetadata {
   url?: unknown
 }
 
+/**
+ * Collapse whitespace, including nonbreaking spaces, and trim; return empty text for nullish input.
+ */
 function cleanText(value: string | null | undefined) {
   return value?.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim() ?? ""
 }
 
+/**
+ * Return the first nonempty content attribute found in selector order, or an empty string.
+ */
 function metaContent($: ReturnType<typeof load>, selectors: string[]) {
   for (const selector of selectors) {
     const value = cleanText($(selector).first().attr("content"))
@@ -57,6 +63,9 @@ function metaContent($: ReturnType<typeof load>, selectors: string[]) {
   return ""
 }
 
+/**
+ * Append article records found recursively in JSON-LD arrays and @graph entries to results.
+ */
 function collectJsonLdArticles(value: unknown, results: JsonRecord[]) {
   if (Array.isArray(value)) {
     for (const item of value) collectJsonLdArticles(item, results)
@@ -72,6 +81,9 @@ function collectJsonLdArticles(value: unknown, results: JsonRecord[]) {
   if (record["@graph"]) collectJsonLdArticles(record["@graph"], results)
 }
 
+/**
+ * Return the first article record from valid JSON-LD scripts, ignoring malformed scripts.
+ */
 function readArticleMetadata($: ReturnType<typeof load>): ArticleMetadata {
   const records: JsonRecord[] = []
   $("script[type='application/ld+json']").each((_, element) => {
@@ -84,10 +96,16 @@ function readArticleMetadata($: ReturnType<typeof load>): ArticleMetadata {
   return (records[0] ?? {}) as ArticleMetadata
 }
 
+/**
+ * Normalize string metadata values and return an empty string for other types.
+ */
 function stringValue(value: unknown) {
   return typeof value === "string" ? cleanText(value) : ""
 }
 
+/**
+ * Extract an image URL from a string, the first array item, or a URL-bearing object.
+ */
 function imageValue(value: unknown): string {
   if (typeof value === "string") return value
   if (Array.isArray(value)) return imageValue(value[0])
@@ -98,6 +116,9 @@ function imageValue(value: unknown): string {
   return ""
 }
 
+/**
+ * Extract author names from strings or objects, joining author arrays with commas.
+ */
 function authorValue(value: unknown): string {
   if (typeof value === "string") return cleanText(value)
   if (Array.isArray(value)) return value.map(authorValue).filter(Boolean).join(", ")
@@ -105,11 +126,17 @@ function authorValue(value: unknown): string {
   return ""
 }
 
+/**
+ * Normalize array or comma-separated categories, deduplicate them, and retain at most ten.
+ */
 function categoryValues(value: unknown) {
   const values = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : []
   return [...new Set(values.map((item) => stringValue(item)).filter(Boolean))].slice(0, 10)
 }
 
+/**
+ * Normalize paragraphs and remove short, boilerplate, or case-insensitive duplicate text.
+ */
 function meaningfulParagraphs(rawValues: string[]) {
   const seen = new Set<string>()
   return rawValues.map(cleanText).filter((text) => {
@@ -121,6 +148,9 @@ function meaningfulParagraphs(rawValues: string[]) {
   })
 }
 
+/**
+ * Group sentences into roughly paragraph-sized chunks, retaining text with fewer than three sentences.
+ */
 function splitLargeParagraph(text: string) {
   const sentences = text.match(/[^.!?]+[.!?]+(?:["”']+)?|[^.!?]+$/g)?.map(cleanText).filter(Boolean) ?? []
   if (sentences.length < 3) return [text]
@@ -138,6 +168,9 @@ function splitLargeParagraph(text: string) {
   return paragraphs
 }
 
+/**
+ * Extract meaningful paragraphs from article containers, falling back to the JSON-LD body.
+ */
 function extractBody($: ReturnType<typeof load>, metadata: ArticleMetadata) {
   const metadataBody = stringValue(metadata.articleBody)
   const selectors = ["[itemprop='articleBody']", "[data-testid*='article-body']", "[class*='article-body']", "article", "main"]
@@ -161,12 +194,19 @@ export interface CandidateExtraction {
   rejectionReasons: Record<string, number>
 }
 
+/**
+ * Collect unique article-like links from visible story-card markup up to the maximum.
+ * Return accepted URLs plus counts of rejected and duplicate candidate links.
+ */
 export function extractHomepageCandidates(html: string, sourceUrl: string, maximum: number): CandidateExtraction {
   const $ = load(html)
   const urls: string[] = []
   const seen = new Set<string>()
   const rejectionReasons: Record<string, number> = {}
 
+  /**
+   * Increment the local rejection count for a candidate exclusion reason.
+   */
   function reject(reason: string) {
     rejectionReasons[reason] = (rejectionReasons[reason] ?? 0) + 1
   }
@@ -202,6 +242,11 @@ export function extractHomepageCandidates(html: string, sourceUrl: string, maxim
   }
 }
 
+/**
+ * Parse article metadata and body, returning accepted fields or a rejection reason.
+ * Require a meaningful title and body, a valid date and image, and an article-like
+ * canonical URL on the source hostname.
+ */
 export function parseArticlePage(html: string, requestedUrl: string, sourceUrl: string): ArticleParseResult {
   const $ = load(html)
   const metadata = readArticleMetadata($)

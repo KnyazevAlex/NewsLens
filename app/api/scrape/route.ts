@@ -13,6 +13,10 @@ const scrapeRequestSchema = z.object({
   limitPerSource: z.number().int().min(1).max(20).default(5),
 }).strict()
 
+/**
+ * Parse JSON or return an empty object for a blank body.
+ * @throws {SyntaxError} If the body exceeds 10,000 characters or contains invalid JSON.
+ */
 async function readRequestBody(request: Request) {
   const rawBody = await request.text()
   if (rawBody.length > MAX_REQUEST_CHARACTERS) throw new SyntaxError("Request body is too large")
@@ -20,6 +24,11 @@ async function readRequestBody(request: Request) {
   return JSON.parse(rawBody) as unknown
 }
 
+/**
+ * Authorize an admin request, validate scrape options, and return the run summary.
+ * Returns 401 for unauthorized requests, 400 for invalid input or source selection,
+ * or 500 for configuration and pipeline failures.
+ */
 export async function POST(request: Request) {
   try {
     if (!isAuthorizedAdminRequest(request)) {

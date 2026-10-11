@@ -73,11 +73,17 @@ export interface ArticleDetailsData {
   analysis: ArticleAnalysisData | null
 }
 
+/**
+ * Log database error details and throw a generic error describing the failed operation.
+ */
 function throwQueryError(context: string, error: { message: string; code?: string }) {
   console.error(`[Supabase] ${context}`, { code: error.code, message: error.message })
   throw new Error(`Unable to ${context.toLowerCase()}.`)
 }
 
+/**
+ * Use the stored description when nonblank, otherwise build a body excerpt of at most 180 characters.
+ */
 function toDescription(article: Pick<TableRow<"articles">, "description" | "raw_text">) {
   if (article.description?.trim()) return article.description
 
@@ -85,11 +91,17 @@ function toDescription(article: Pick<TableRow<"articles">, "description" | "raw_
   return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized
 }
 
+/**
+ * Estimate reading time at 220 words per minute, rounded up to at least one minute.
+ */
 function toReadTime(rawText: string) {
   const words = rawText.trim().split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.ceil(words / 220))
 }
 
+/**
+ * Read a nonempty array of finite numbers from a vector value or JSON string; otherwise return null.
+ */
 function toEmbedding(value: unknown): number[] | null {
   const candidate = typeof value === "string"
     ? (() => {
@@ -106,6 +118,9 @@ function toEmbedding(value: unknown): number[] | null {
     : null
 }
 
+/**
+ * Map a stored analysis to display fields, normalizing numeric values and its optional embedding.
+ */
 function mapAnalysis(analysis: TableRow<"article_analyses">): ArticleAnalysisData {
   return {
     summary: analysis.summary,
@@ -125,6 +140,10 @@ function mapAnalysis(analysis: TableRow<"article_analyses">): ArticleAnalysisDat
   }
 }
 
+/**
+ * Call the related-articles RPC with an article ID and vector and map its results for display.
+ * Throw a generic query error when the RPC fails.
+ */
 export async function getRelatedArticles(articleId: string, embedding: number[]): Promise<RelatedArticleData[]> {
   const supabase = createServerSupabaseClient()
   const { data, error } = await supabase.rpc("get_related_articles", {
@@ -146,6 +165,10 @@ export async function getRelatedArticles(articleId: string, embedding: number[])
   }))
 }
 
+/**
+ * Load the newest articles up to the limit and attach source names and optional analysis metrics.
+ * Return an empty list when no articles exist; database query errors throw.
+ */
 export async function getRecentArticles(limit = 24): Promise<NewsCardData[]> {
   const supabase = createServerSupabaseClient()
   const { data: articles, error } = await supabase
@@ -197,6 +220,10 @@ export async function getRecentArticles(limit = 24): Promise<NewsCardData[]> {
   })
 }
 
+/**
+ * Average framing percentages across returned analyses, rounding each percentage independently.
+ * Return zero counts and percentages when no analyses are available; query errors throw.
+ */
 export async function getBiasOverview(): Promise<BiasOverviewData> {
   const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
@@ -224,6 +251,10 @@ export async function getBiasOverview(): Promise<BiasOverviewData> {
   }
 }
 
+/**
+ * Load article details with source information and optional analysis.
+ * Return null when the article is absent; query errors or a missing source throw.
+ */
 export async function getArticleById(id: string): Promise<ArticleDetailsData | null> {
   const supabase = createServerSupabaseClient()
   const { data: article, error } = await supabase

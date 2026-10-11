@@ -11,10 +11,17 @@ const DATE_PATH_PATTERN = /\/(?:19|20)\d{2}\/(?:0?[1-9]|1[0-2])(?:\/(?:0?[1-9]|[
 const ARTICLE_MARKER_PATTERN = /\/(?:article|articles|news|story|stories)\//i
 const ARTICLE_ID_PATTERN = /(?:^|[-_/])\d{6,}(?:[-_/]|$)/
 
+/**
+ * Lowercase a hostname and strip its leading www prefix for source comparisons.
+ */
 function normalizedHostname(hostname: string) {
   return hostname.toLowerCase().replace(/^www\./, "")
 }
 
+/**
+ * Resolve an optional relative URL and normalize its host, port, fragment, and trailing slash.
+ * Return null for invalid URLs, non-HTTP protocols, or embedded credentials.
+ */
 export function normalizeHttpUrl(rawUrl: string, baseUrl?: string) {
   try {
     const url = baseUrl ? new URL(rawUrl, baseUrl) : new URL(rawUrl)
@@ -32,6 +39,9 @@ export function normalizeHttpUrl(rawUrl: string, baseUrl?: string) {
   }
 }
 
+/**
+ * Compare source hostnames ignoring case and a leading www; return false for invalid URLs.
+ */
 export function hasSameSourceHostname(candidateUrl: string, sourceUrl: string) {
   try {
     return normalizedHostname(new URL(candidateUrl).hostname) === normalizedHostname(new URL(sourceUrl).hostname)
@@ -40,6 +50,9 @@ export function hasSameSourceHostname(candidateUrl: string, sourceUrl: string) {
   }
 }
 
+/**
+ * Reject invalid URLs and paths for known utility sections, non-article sections, or file assets.
+ */
 export function isRejectedArticlePath(urlValue: string) {
   try {
     const url = new URL(urlValue)
@@ -52,6 +65,10 @@ export function isRejectedArticlePath(urlValue: string) {
   }
 }
 
+/**
+ * Heuristically identify article URLs on the source hostname using dates, markers, IDs, or slugs.
+ * Reject the source homepage, disallowed paths, and malformed URL encodings.
+ */
 export function isLikelyArticleUrl(candidateUrl: string, sourceUrl: string) {
   const normalizedCandidate = normalizeHttpUrl(candidateUrl)
   const normalizedSource = normalizeHttpUrl(sourceUrl)

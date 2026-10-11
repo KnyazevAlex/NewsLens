@@ -8,6 +8,9 @@ interface FramingDistributionProps {
   className?: string
 }
 
+/**
+ * Render supplied framing percentages as an accessible bar with optional compact sizing.
+ */
 export function FramingDistribution({
   left,
   center,

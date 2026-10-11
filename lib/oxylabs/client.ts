@@ -16,6 +16,7 @@ interface OxylabsResponse {
 export class OxylabsError extends Error {
   readonly kind: "configuration" | "provider"
 
+  /** Create an Oxylabs error classified as a configuration or provider failure. */
   constructor(kind: "configuration" | "provider", message: string) {
     super(message)
     this.name = "OxylabsError"
@@ -23,17 +24,28 @@ export class OxylabsError extends Error {
   }
 }
 
+/**
+ * Read a required Oxylabs credential or throw a configuration error when absent.
+ */
 function requireCredential(name: "OXY_WSA_USERNAME" | "OXY_WSA_PASSWORD") {
   const value = process.env[name]
   if (!value) throw new OxylabsError("configuration", `Missing required server configuration: ${name}`)
   return value
 }
 
+/**
+ * Verify both Oxylabs credentials are present, throwing a configuration error otherwise.
+ */
 export function assertOxylabsConfiguration() {
   requireCredential("OXY_WSA_USERNAME")
   requireCredential("OXY_WSA_PASSWORD")
 }
 
+/**
+ * Fetch a page through Oxylabs Realtime with a timeout and response-size checks.
+ * Return HTML from the first successful result. Missing credentials and invalid
+ * provider responses raise OxylabsError; response-body read errors may propagate.
+ */
 export async function fetchHtmlThroughOxylabs(targetUrl: string) {
   const username = requireCredential("OXY_WSA_USERNAME")
   const password = requireCredential("OXY_WSA_PASSWORD")

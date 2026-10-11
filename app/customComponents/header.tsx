@@ -39,6 +39,9 @@ function SearchBar() {
 
 
 
+/**
+ * Render the news toolbar with search controls and Clerk sign-in or account controls.
+ */
 export default function Header() {
   const { isLoaded, user } = useUser()
 

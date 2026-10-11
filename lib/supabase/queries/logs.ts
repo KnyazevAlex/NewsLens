@@ -12,6 +12,9 @@ export interface LogItemData {
   createdAt: string
 }
 
+/**
+ * Pick a nonblank title, source name, or summary from metadata, falling back to an article count.
+ */
 function metadataDetail(metadata: Json): string | null {
   if (!metadata || Array.isArray(metadata) || typeof metadata !== "object") return null
 
@@ -24,7 +27,14 @@ function metadataDetail(metadata: Json): string | null {
   return typeof count === "number" ? `${count} articles` : null
 }
 
+<<<<<<< HEAD
 export async function getRecentLogs(limit: number): Promise<LogItemData[]> {
+=======
+/**
+ * Load the latest logs up to the limit and map display details; throw on database errors.
+ */
+export async function getRecentLogs(limit = 5): Promise<LogItemData[]> {
+>>>>>>> f035d7d734a61d28773cfb1920609763759d93af
   const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from("logs")

@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button"
 import { getBiasOverview, getRecentArticles } from "@/lib/supabase/queries/articles"
 import { getRecentLogs } from "@/lib/supabase/queries/logs"
 
+/**
+ * Load articles, framing averages, and recent logs concurrently for the dynamic homepage.
+ */
 export default async function HomePage() {
   await connection()
 

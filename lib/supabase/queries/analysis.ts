@@ -6,6 +6,9 @@ import type { Json } from "@/lib/supabase/types"
 
 const PAGE_SIZE = 500
 
+/**
+ * Read a nonempty array of finite numbers from a vector value or JSON string; otherwise return null.
+ */
 function toEmbedding(value: unknown): number[] | null {
   const candidate = typeof value === "string"
     ? (() => {
@@ -22,11 +25,18 @@ function toEmbedding(value: unknown): number[] | null {
     : null
 }
 
+/**
+ * Log database error details and throw a generic error describing the failed operation.
+ */
 function throwQueryError(context: string, error: { message: string; code?: string }) {
   console.error(`[Supabase] ${context}`, { code: error.code, message: error.message })
   throw new Error(`Unable to ${context.toLowerCase()}.`)
 }
 
+/**
+ * Page through selected articles and collect those missing an analysis or valid embedding.
+ * Return the pending count before applying the optional result limit; query errors throw.
+ */
 export async function getPendingArticlesSnapshot(options: {
   articleIds?: string[]
   limit?: number
@@ -74,6 +84,9 @@ export async function getPendingArticlesSnapshot(options: {
   }
 }
 
+/**
+ * Upsert generated analysis fields by article ID, throwing if persistence fails.
+ */
 export async function saveArticleAnalysis(articleId: string, analysis: GeneratedArticleAnalysis) {
   const supabase = createServerSupabaseClient()
   const { error: analysisError } = await supabase.from("article_analyses").upsert({
@@ -98,6 +111,10 @@ export async function saveArticleAnalysis(articleId: string, analysis: Generated
 
 }
 
+/**
+ * Update an existing analysis embedding and optionally mark the article analyzed.
+ * The two writes are separate; either database error propagates to the caller.
+ */
 export async function saveArticleEmbedding(articleId: string, embedding: number[], markArticleAnalyzed: boolean) {
   const supabase = createServerSupabaseClient()
   const { error: embeddingError } = await supabase
@@ -116,6 +133,9 @@ export async function saveArticleEmbedding(articleId: string, embedding: number[
   if (articleError) throwQueryError("mark article analyzed", articleError)
 }
 
+/**
+ * Insert an analysis log with optional article metadata; warn on returned database errors.
+ */
 export async function writeAnalysisLog(input: {
   level: "debug" | "info" | "warning" | "error" | "success"
   event: string
