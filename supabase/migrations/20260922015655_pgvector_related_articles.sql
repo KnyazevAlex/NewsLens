@@ -34,14 +34,14 @@ as $$
     article.published_at,
     source.name,
     source.logo_url,
-    1 - (analysis.embedding <=> query_embedding) as similarity
+    1 - (analysis.embedding operator(extensions.<=>) query_embedding) as similarity
   from public.article_analyses as analysis
   join public.articles as article on article.id = analysis.article_id
   join public.sources as source on source.id = article.source_id
   where analysis.article_id <> query_article_id
     and analysis.embedding is not null
     and article.analyzed_at is not null
-  order by analysis.embedding <=> query_embedding asc
+  order by analysis.embedding operator(extensions.<=>) query_embedding asc
   limit 5;
 $$;
 
