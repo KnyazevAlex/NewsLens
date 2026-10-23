@@ -1,7 +1,6 @@
 import LeftSideBar from "@/app/customComponents/left-side-bar";
 import Header from "@/app/customComponents/header";
 import LogsCard from "@/app/customComponents/logsCard";
-import Head from "next/head";
 import {getRecentLogs} from "@/lib/supabase/queries/logs";
 import { auth } from "@clerk/nextjs/server"
 

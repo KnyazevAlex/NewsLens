@@ -4,13 +4,14 @@ import { Bookmark } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
 import posthog from "posthog-js"
-
 import { BiasBadge } from "@/app/customComponents/bias-badge"
 import { FramingDistribution } from "@/app/customComponents/framing-distribution"
 import type { NewsCardData } from "@/lib/supabase/queries/articles"
 
+
 interface NewsGridProps {
   articles: NewsCardData[]
+  bookmarks?: any[]
 }
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -38,7 +39,7 @@ function formatSentimentLabel(label: NewsCardData["sentimentLabel"]) {
 /**
  * Render linked article cards with available analysis metrics, or an empty feed state.
  */
-export default function NewsGrid({ articles }: NewsGridProps) {
+export default function NewsGrid({ articles, bookmarks}: NewsGridProps) {
   if (!articles.length) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
@@ -50,12 +51,19 @@ export default function NewsGrid({ articles }: NewsGridProps) {
     )
   }
 
+
+
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-      {articles.map((article, index) => (
+      {articles.map((article, index) => {
+        const isBookmarked = bookmarks?.some(bookmark => bookmark.title === article.title)
+        console.log(isBookmarked)
+        return(
         <Link
           href={`/news/${article.id}`}
           key={article.id}
+          id={article.id}
+          data-articleid={article.id}
           className="block"
           onClick={() => {
             posthog.capture("article_opened", {
@@ -88,7 +96,14 @@ export default function NewsGrid({ articles }: NewsGridProps) {
                     {dateFormatter.format(new Date(article.publishedAt))}
                   </time>
                 </div>
-                <Bookmark className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                <div
+                  // onClick={() => addBookmark(`/news/${article.id}`, article.title)}
+                >
+                <Bookmark 
+                 fill={isBookmarked ? 'yellow' : 'white'}
+                data-bookmark-id={article.id}
+                className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                </div>
               </div>
 
               <h2 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-neutral-900">
@@ -148,7 +163,7 @@ export default function NewsGrid({ articles }: NewsGridProps) {
             </div>
           </motion.article>
         </Link>
-      ))}
+      )})}
     </div>
   )
 }

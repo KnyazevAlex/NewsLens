@@ -28,34 +28,33 @@ const LeftSideBar = () => {
             <Link href="/" className="flex items-center gap-3 px-3 py-2.5  text-[#2563EB] rounded-lg font-medium text-sm">
               <Home className="w-4 h-4" /> Home
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            {/* <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <TrendingUp className="w-4 h-4" /> Trending
-            </Link>
+            </Link> */}
             <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <Layers className="w-4 h-4" /> Sources
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
-              <Bookmark className="w-4 h-4" /> Bookmarks
-            </Link>
+          
             <Link href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <History className="w-4 h-4" /> History
+            </Link>
+              <Link href="/logs" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+              <FileText className="w-4 h-4" /> Logs
             </Link>
           </nav>
 
           <div className="my-6 mx-4 border-t border-neutral-100" />
 
           {/* Secondary Nav */}
-          <nav className="px-4 space-y-1">
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+          {/* <nav className="px-4 space-y-1"> */}
+            {/* <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <Filter className="w-4 h-4" /> Filter
-            </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
+            </a> */}
+            {/* <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
               <Search className="w-4 h-4" /> Search
-            </a>
-            <a href="/logs" className="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 rounded-lg font-medium text-sm transition-colors">
-              <FileText className="w-4 h-4" /> Logs
-            </a>
-          </nav>
+            </a> */}
+          
+          {/* </nav> */}
         </div>
 
         </div>
