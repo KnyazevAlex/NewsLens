@@ -15,8 +15,10 @@ import BookMarkMenu from "./book-mark-menu"
 import posthog from "posthog-js"
 import { useEffect, useRef, useState } from "react"
 
+import type { BookmarkRecord } from "@/lib/supabase/types"
+
 export interface BookMarkType {
-  bookmarks : any[] | null
+  bookmarks: BookmarkRecord[]
 }
 
 // to be implemented
@@ -232,6 +234,7 @@ export default function Header({bookmarks} : BookMarkType) {
             DESKTOP BOOKMARK BUTTON
         ==================================================== */}
 
+          <Show when="signed-in">
           <div className="shrink-0">
             <Button
               type="button"
@@ -256,9 +259,10 @@ export default function Header({bookmarks} : BookMarkType) {
             <BookMarkMenu
               open={bookMarkMenuExpanded}
               onOpenChange={setBookmarkMenuExpanded}
-              bookmarks={bookmarks ? bookmarks : null}
+              bookmarks={bookmarks}
             />
           </div>
+          </Show>
 
          
      

@@ -58,9 +58,10 @@ export default async function NewsDetailsPage({ params }: PageProps) {
     ? await getRelatedArticles(article.id, analysis.embedding)
     : []
 
-  const url  = `http://localhost:3000/news/${article.id}`
+  const url = `/news/${article.id}`
   const title = article.title
   const bookmarks = await fetchBookmarks()
+  const isBookmarked = bookmarks.some((bookmark) => bookmark.url === url)
 
   return (
     <div className="flex min-h-screen bg-neutral-50 font-sans">
@@ -68,7 +69,7 @@ export default async function NewsDetailsPage({ params }: PageProps) {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Header 
-        bookmarks={bookmarks ? bookmarks : null}
+        bookmarks={bookmarks}
         />
 
         <div className="flex-1 p-4 sm:p-8">
@@ -93,6 +94,7 @@ export default async function NewsDetailsPage({ params }: PageProps) {
                   <BookmarkComponent
                   url={url}
                   title={title}
+                  isBookmarked={isBookmarked}
                   ></BookmarkComponent>
                     <Share />
                   </div>

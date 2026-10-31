@@ -1,37 +1,58 @@
-import { ExternalLink, CalendarDays, Fingerprint, TrashIcon} from "lucide-react"
+'use client'
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { ExternalLink, CalendarDays, Fingerprint, TrashIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { deleteBookmark } from "@/lib/supabase/queries/manageBookMarks"
+import type { BookmarkRecord } from "@/lib/supabase/types"
 
-export default function BookmarkCard({ bookmark} : any) {
-  const formattedDate = new Date(bookmark.created_at).toLocaleString(
-    "en-US",
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
+export default function BookmarkCard({ bookmark }: { bookmark: BookmarkRecord }) {
+  const router = useRouter()
+  const [pending, setPending] = useState(false)
+  const [message, setMessage] = useState("")
+  const formattedDate = new Date(bookmark.created_at).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+
+  async function handleDelete() {
+    if (pending) return
+    setPending(true)
+    setMessage("")
+    try {
+      const result = await deleteBookmark(bookmark.id)
+      if (!result.success) {
+        setMessage(result.error)
+        return
+      }
+      router.refresh()
+    } catch {
+      setMessage("Could not remove this bookmark.")
+    } finally {
+      setPending(false)
     }
-  )
+  }
+
+  const articleHref = getArticleHref(bookmark.url)
 
   return (
-    <article className="rounded-xl border my-2 border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md" key={bookmark.id} >
+    <article className="my-2 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="relative mb-4 flex items-center justify-between gap-3">
-
-        <span className=" rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
           Bookmark
         </span>
-
-        <span 
-        className="absolute left-24 hover:scale-105 cursor-pointer"
-        onClick={async() => {
-            console.log(1)
-            return(
-                deleteBookmark(bookmark.id)
-               
-            )
-        }}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleDelete}
+          disabled={pending}
+          aria-label={`Remove bookmark for ${bookmark.title}`}
+          title="Remove bookmark"
         >
-            <TrashIcon fill="grey " />
-        </span>
-
+          <TrashIcon className="h-4 w-4" />
+        </Button>
         <span className="flex items-center gap-1.5 text-xs text-neutral-500">
           <CalendarDays className="h-4 w-4" />
           {formattedDate}
@@ -44,19 +65,16 @@ export default function BookmarkCard({ bookmark} : any) {
 
       <div className="mb-4 flex items-start gap-2 rounded-lg bg-neutral-50 p-3">
         <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
-
         <div className="min-w-0">
-          <p className="mb-1 text-xs font-medium text-neutral-500">
-            Bookmark ID
-          </p>
-          <p className="break-all font-mono text-xs text-neutral-700">
-            {bookmark.id}
-          </p>
+          <p className="mb-1 text-xs font-medium text-neutral-500">Bookmark ID</p>
+          <p className="break-all font-mono text-xs text-neutral-700">{bookmark.id}</p>
         </div>
       </div>
 
+      {message && <p role="status" className="mb-3 text-xs text-red-600">{message}</p>}
+
       <a
-        href={bookmark.url}
+        href={articleHref}
         className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-800"
       >
         View article
@@ -64,4 +82,17 @@ export default function BookmarkCard({ bookmark} : any) {
       </a>
     </article>
   )
+}
+
+/** Keep historical localhost detail links usable when deployed elsewhere. */
+function getArticleHref(url: string) {
+  try {
+    const parsed = new URL(url)
+    if (["localhost", "127.0.0.1"].includes(parsed.hostname) && parsed.pathname.startsWith("/news/")) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    // Relative paths are expected for all newly-created bookmarks.
+  }
+  return url
 }

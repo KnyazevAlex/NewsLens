@@ -24,13 +24,7 @@ export default async function HomePage() {
   ])
   const { getToken } = await auth()
   const token = await getToken()
-  let bookMarks
-  if(token){
-
-  bookMarks = await fetchBookmarks()
- 
-  
-  }
+  const bookMarks = token ? await fetchBookmarks() : []
 
 
   return (
@@ -39,7 +33,7 @@ export default async function HomePage() {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <Header 
-         bookmarks={bookMarks ? bookMarks : null}
+         bookmarks={bookMarks}
         />
 
         <div className="flex-1 p-4 sm:p-8">

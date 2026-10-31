@@ -109,3 +109,10 @@ In order to debloat pages and make populating components with real data and remo
 
 * **Files Changed:** API route handlers, updated homepage/detail components, and function-bearing modules under `lib/ai`, `lib/analysis`, `lib/oxylabs`, `lib/scraping`, `lib/security`, and `lib/supabase`.
 * **Approach & Why:** Added JSDoc for existing functions and error constructors to address the PR's 80% docstring coverage requirement, describing return values, side effects, and failure cases without changing executable code.
+
+## [10/31/2026] - Finished Bookmark UI and Per-User Uniqueness
+
+* **Files Created/Changed:** Added `supabase/migrations/20261031000000_bookmarks_per_user_unique.sql`; updated bookmark actions, bookmark button/card/menu components, homepage and article-detail bookmark wiring, Supabase bookmark row typing, and this memory entry.
+* **Features Added:** Bookmark identity now uses a stable `/news/{articleId}` route. Server actions assign the authenticated Clerk user ID, scope fetch/delete queries to that user, and use an idempotent upsert. The migration replaces any URL-only unique constraint with `(user_id, url)`, consolidates same-user duplicate rows, and preserves distinct users' rows and the existing RLS policy. Feed/detail saved state, sign-in prompting, pending/error feedback, accessible deletion, and the empty-list state are wired.
+* **Approach & Why:** Kept the dashboard-created table and its RLS ownership model. A composite owner/article constraint permits multiple users to save the same article while stopping duplicates for one user. Stable relative routes avoid environment-specific localhost URLs.
+* **Verification:** `git diff --check` completed without whitespace errors. Typecheck, lint, migration application, and two-account Supabase behavior still need to be run/verified.
