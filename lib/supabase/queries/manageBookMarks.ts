@@ -20,7 +20,14 @@ export async function addBookmark(url: string, title: string): Promise<BookmarkA
   }
 
   try {
-    const supabase = await supabaseActivation()
+    const supabase = await supabaseActivation().catch((error) => {
+      console.error("Error activating Supabase:", error)
+    })
+
+    if(!supabase) {
+      throw new Error("Supabase client is not initialized.")
+    }
+
     const { data, error } = await supabase
       .from("bookmarks")
       .upsert(
@@ -49,7 +56,14 @@ export async function fetchBookmarks(): Promise<BookmarkRecord[]> {
   const { userId } = await auth()
   if (!userId) return []
 
-  const supabase = await supabaseActivation()
+   const supabase = await supabaseActivation().catch((error) => {
+      console.error("Error activating Supabase:", error)
+
+    })
+
+    if(!supabase) {
+      throw new Error("Supabase client is not initialized.")
+    }
   const { data, error } = await supabase
     .from("bookmarks")
     .select("id, user_id, url, title, created_at")
@@ -69,7 +83,14 @@ export async function deleteBookmark(id: string): Promise<BookmarkActionResult> 
   const { userId } = await auth()
   if (!userId) return { success: false, error: "Sign in to manage bookmarks." }
 
-  const supabase = await supabaseActivation()
+  const supabase = await supabaseActivation().catch((error) => {
+      console.error("Error activating Supabase:", error)
+
+    })
+
+    if(!supabase) {
+      throw new Error("Supabase client is not initialized.")
+    }
   const { data, error } = await supabase
     .from("bookmarks")
     .delete()
