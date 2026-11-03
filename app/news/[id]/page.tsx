@@ -1,14 +1,13 @@
 import { auth } from "@clerk/nextjs/server"
 import {
   ArrowLeft,
-  Bookmark,
   Calendar,
   FileText,
   Globe,
-  Share2,
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
+import BookmarkComponent from "@/app/customComponents/bookmark"
 import { notFound } from "next/navigation"
 
 import { BiasBadge } from "@/app/customComponents/bias-badge"
@@ -19,6 +18,7 @@ import LeftSideBar from "@/app/customComponents/left-side-bar"
 import Share from "@/app/customComponents/share"
 import { Button } from "@/components/ui/button"
 import { getArticleById, getRelatedArticles } from "@/lib/supabase/queries/articles"
+import { fetchBookmarks } from "@/lib/supabase/queries/manageBookMarks"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -54,15 +54,23 @@ export default async function NewsDetailsPage({ params }: PageProps) {
 
   const analysis = article.analysis
   const relatedArticles = analysis?.embedding
+
     ? await getRelatedArticles(article.id, analysis.embedding)
     : []
+
+  const url = `/news/${article.id}`
+  const title = article.title
+  const bookmarks = await fetchBookmarks()
+  const isBookmarked = bookmarks.some((bookmark) => bookmark.url === url)
 
   return (
     <div className="flex min-h-screen bg-neutral-50 font-sans">
       <LeftSideBar />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Header />
+        <Header 
+        bookmarks={bookmarks}
+        />
 
         <div className="flex-1 p-4 sm:p-8">
           <div className="mx-auto mb-6 max-w-[1600px]">
@@ -83,9 +91,11 @@ export default async function NewsDetailsPage({ params }: PageProps) {
                     <span>{article.readTimeMinutes} min read</span>
                   </div>
                   <div className="flex items-center gap-2 text-neutral-400">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-neutral-900" aria-label="Bookmark article">
-                      <Bookmark className="h-4 w-4" />
-                    </Button>
+                  <BookmarkComponent
+                  url={url}
+                  title={title}
+                  isBookmarked={isBookmarked}
+                  ></BookmarkComponent>
                     <Share />
                   </div>
                 </div>

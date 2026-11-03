@@ -1,17 +1,19 @@
 "use client"
 
-import { Bookmark } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
 import posthog from "posthog-js"
-
+import BookmarkComponent from "@/app/customComponents/bookmark"
 import { BiasBadge } from "@/app/customComponents/bias-badge"
 import { FramingDistribution } from "@/app/customComponents/framing-distribution"
 import type { NewsCardData } from "@/lib/supabase/queries/articles"
+import type { BookmarkRecord } from "@/lib/supabase/types"
 
 interface NewsGridProps {
   articles: NewsCardData[]
+  bookmarks?: BookmarkRecord[]
 }
+
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -19,26 +21,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 })
 
-/**
- * Capitalize a framing label, falling back to "Not analyzed" when absent.
- */
 function formatBiasLabel(label: NewsCardData["biasLabel"]) {
   if (!label) return "Not analyzed"
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-/**
- * Capitalize a sentiment label, falling back to "Pending" when absent.
- */
 function formatSentimentLabel(label: NewsCardData["sentimentLabel"]) {
   if (!label) return "Pending"
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-/**
- * Render linked article cards with available analysis metrics, or an empty feed state.
- */
-export default function NewsGrid({ articles }: NewsGridProps) {
+function trackArticleOpen(article: NewsCardData) {
+  posthog.capture("article_opened", {
+    article_id: article.id,
+    source: article.source,
+    analysis_available: Boolean(article.biasLabel),
+  })
+}
+
+export default function NewsGrid({ articles, bookmarks = [] }: NewsGridProps) {
   if (!articles.length) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
@@ -52,48 +53,56 @@ export default function NewsGrid({ articles }: NewsGridProps) {
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-      {articles.map((article, index) => (
-        <Link
-          href={`/news/${article.id}`}
-          key={article.id}
-          className="block"
-          onClick={() => {
-            posthog.capture("article_opened", {
-              article_id: article.id,
-              source: article.source,
-              analysis_available: Boolean(article.biasLabel),
-            })
-          }}
-        >
+      {articles.map((article, index) => {
+        const articlePath = `/news/${article.id}`
+        const isBookmarked = bookmarks.some((bookmark) => bookmark.url === articlePath)
+
+        return (
           <motion.article
+            key={article.id}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 24, delay: index * 0.04 }}
             className="group flex h-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
           >
-            <div className="relative h-44 overflow-hidden">
+            <Link
+              href={articlePath}
+              onClick={() => trackArticleOpen(article)}
+              aria-label={`Read ${article.title}`}
+              className="relative block h-44 overflow-hidden"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={article.imageUrl}
                 alt={article.title}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-            </div>
+            </Link>
+
             <div className="flex flex-1 flex-col p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[11px] font-medium text-neutral-500">
-                  <span className="font-bold text-neutral-900">{article.source}</span>
-                  <span>•</span>
-                  <time dateTime={article.publishedAt}>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2 text-[11px] font-medium text-neutral-500">
+                  <span className="truncate font-bold text-neutral-900">{article.source}</span>
+                  <span aria-hidden="true">•</span>
+                  <time className="shrink-0" dateTime={article.publishedAt}>
                     {dateFormatter.format(new Date(article.publishedAt))}
                   </time>
                 </div>
-                <Bookmark className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                <BookmarkComponent
+                  url={articlePath}
+                  title={article.title}
+                  isBookmarked={isBookmarked}
+                  compact
+                />
               </div>
 
-              <h2 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-neutral-900">
+              <Link
+                href={articlePath}
+                onClick={() => trackArticleOpen(article)}
+                className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-neutral-900 hover:text-blue-700"
+              >
                 {article.title}
-              </h2>
+              </Link>
               <p className="mb-4 line-clamp-3 flex-1 text-xs text-neutral-500">
                 {article.description}
               </p>
@@ -147,8 +156,8 @@ export default function NewsGrid({ articles }: NewsGridProps) {
                 )}
             </div>
           </motion.article>
-        </Link>
-      ))}
+        )
+      })}
     </div>
   )
 }

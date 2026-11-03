@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react"
 import { connection } from "next/server"
-
+import { auth } from "@clerk/nextjs/server"
 import BiasWidget from "@/app/customComponents/bias-widget"
 import Header from "@/app/customComponents/header"
 import LatestLogs from "@/app/customComponents/latest-logs"
@@ -9,6 +9,7 @@ import NewsGrid from "@/app/customComponents/news-grid"
 import { Button } from "@/components/ui/button"
 import { getBiasOverview, getRecentArticles } from "@/lib/supabase/queries/articles"
 import { getRecentLogs } from "@/lib/supabase/queries/logs"
+import { fetchBookmarks } from "@/lib/supabase/queries/manageBookMarks"
 
 /**
  * Load articles, framing averages, and recent logs concurrently for the dynamic homepage.
@@ -21,13 +22,19 @@ export default async function HomePage() {
     getBiasOverview(),
     getRecentLogs(5),
   ])
+  const { getToken } = await auth()
+  const token = await getToken()
+  const bookMarks = token ? await fetchBookmarks() : []
+
 
   return (
     <div className="flex min-h-screen bg-neutral-50 font-sans">
       <LeftSideBar />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Header />
+        <Header 
+         bookmarks={bookMarks}
+        />
 
         <div className="flex-1 p-4 sm:p-8">
           <div className="mx-auto flex max-w-[1600px] flex-col gap-8 lg:flex-row">
@@ -53,7 +60,7 @@ export default async function HomePage() {
                 </Button>
               </div>
 
-              <NewsGrid articles={articles} />
+              <NewsGrid articles={articles} bookmarks={bookMarks} />
 
               <footer className="flex flex-wrap justify-center gap-4 pb-4 pt-4 text-center text-[11px] text-neutral-400">
                 <span>{new Date().getFullYear()} All rights reserved.</span>

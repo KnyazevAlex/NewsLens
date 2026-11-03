@@ -347,3 +347,12 @@ export type TableInsert<T extends keyof Database["public"]["Tables"]> =
 
 export type TableUpdate<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Update"]
+
+/** Row shape for the dashboard-created bookmarks table. */
+export interface BookmarkRecord {
+  id: string
+  user_id: string
+  url: string
+  title: string
+  created_at: string
+}

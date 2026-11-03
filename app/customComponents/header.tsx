@@ -11,9 +11,17 @@ import MobileMenu from "./mobileMenu"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Show, SignInButton, UserButton, useUser } from "@clerk/nextjs"
+import BookMarkMenu from "./book-mark-menu"
 import posthog from "posthog-js"
 import { useEffect, useRef, useState } from "react"
 
+import type { BookmarkRecord } from "@/lib/supabase/types"
+
+export interface BookMarkType {
+  bookmarks: BookmarkRecord[]
+}
+
+// to be implemented
 
 function SearchBar() {
   return (
@@ -42,12 +50,16 @@ function SearchBar() {
 /**
  * Render the news toolbar with search controls and Clerk sign-in or account controls.
  */
-export default function Header() {
+
+
+
+export default function Header({bookmarks} : BookMarkType) {
   const { isLoaded, user } = useUser()
 
   const previousUserId = useRef<string | null>(null)
 
   const [menuExpanded, setMenuExpanded] = useState(false)
+  const [bookMarkMenuExpanded, setBookmarkMenuExpanded] = useState(false)
 
   const userId = user?.id
   const email = user?.primaryEmailAddress?.emailAddress
@@ -88,9 +100,15 @@ export default function Header() {
     setMenuExpanded(false)
   }
 
+  const toggleBookmarkMenu = () => {
+    posthog.capture("bookmarks_clicked")
+    setBookmarkMenuExpanded((current) => !current)
+  }
+
   return (
     <header
       className="
+      
         sticky
         top-0
         z-50
@@ -201,7 +219,7 @@ export default function Header() {
         ==================================================== */}
 
         <div className="hidden lg:block ml-auto w-80">
-          <SearchBar />
+          {/* <SearchBar /> */}
         </div>
 
         {/* ===================================================
@@ -209,32 +227,46 @@ export default function Header() {
         ==================================================== */}
 
         <div className="lg:hidden min-w-0 flex-1">
-          <SearchBar />
+          {/* <SearchBar /> */}
         </div>
 
         {/* ===================================================
             DESKTOP BOOKMARK BUTTON
         ==================================================== */}
 
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Bookmarks"
-          className="
-            hidden
-            sm:flex
-            h-10
-            w-10
-            shrink-0
-            rounded-lg
-            border-neutral-200
-            bg-white
-            shadow-sm
-            text-neutral-600
-          "
-        >
-          <Bookmark className="h-4 w-4" />
-        </Button>
+          <Show when="signed-in">
+          <div className="shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={toggleBookmarkMenu}
+              aria-label="Bookmarks"
+              aria-expanded={bookMarkMenuExpanded}
+              className="
+                h-10 w-10 rounded-lg
+                border-neutral-200 bg-white
+                text-neutral-600 shadow-sm
+                hover:bg-neutral-100
+              "
+            >
+              <Bookmark
+                className="h-4 w-4"
+                fill={bookMarkMenuExpanded ? "currentColor" : "none"}
+              />
+            </Button>
+
+            <BookMarkMenu
+              open={bookMarkMenuExpanded}
+              onOpenChange={setBookmarkMenuExpanded}
+              bookmarks={bookmarks}
+            />
+          </div>
+          </Show>
+
+         
+     
+       
 
         {/* ===================================================
             CLERK AUTH

@@ -1,14 +1,15 @@
 import LeftSideBar from "@/app/customComponents/left-side-bar";
 import Header from "@/app/customComponents/header";
 import LogsCard from "@/app/customComponents/logsCard";
-import Head from "next/head";
 import {getRecentLogs} from "@/lib/supabase/queries/logs";
+import { fetchBookmarks } from "@/lib/supabase/queries/manageBookMarks";
 import { auth } from "@clerk/nextjs/server"
 
 
 const loadLogs = async () => {
 
 const fiftyRecentLogs  = await getRecentLogs(50)
+const bookmarks = await fetchBookmarks()
 
 await auth.protect()
 
@@ -17,7 +18,9 @@ await auth.protect()
         <LeftSideBar />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Header />
+        <Header 
+        bookmarks={bookmarks}
+        />
         <div className="lg:grid-cols-4 md:grid-cols-3 sm: grid-cols-1 grid gap-6 p-5">
          
         {fiftyRecentLogs.map((log) => (
