@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import {useState, useOptimistic, useTransition} from "react"
 import { useRouter } from "next/navigation"
 import { SignInButton, useUser } from "@clerk/nextjs"
 import { Bookmark } from "lucide-react"
@@ -22,32 +22,31 @@ export default function BookmarkComponent({
 }: BookmarkButtonProps) {
   const router = useRouter()
   const { isLoaded, isSignedIn } = useUser()
-  const [saved, setSaved] = useState(isBookmarked)
-  const [pending, setPending] = useState(false)
+  const [saved, setSaved] = useOptimistic(isBookmarked)
+  const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState("")
 
-  useEffect(() => setSaved(isBookmarked), [isBookmarked])
+  function handleBookmark() {
+    if (saved || isPending) return
 
-  async function handleBookmark() {
-    if (saved || pending) return
-
-    setPending(true)
     setMessage("")
-    try {
-      const result = await addBookmark(url, title)
-      if (!result.success) {
-        setMessage(result.error)
-        return
-      }
 
+    startTransition(async () => {
       setSaved(true)
-      setMessage(result.alreadyBookmarked ? "Already bookmarked" : "Saved")
-      router.refresh()
-    } catch {
-      setMessage("Could not save this bookmark.")
-    } finally {
-      setPending(false)
-    }
+
+      try {
+        const result = await addBookmark(url, title)
+        if (!result.success) {
+          setMessage(result.error)
+          return
+        }
+
+        setMessage(result.alreadyBookmarked ? "Already bookmarked" : "Saved")
+        router.refresh()
+      } catch {
+        setMessage("Could not save this bookmark.")
+      }
+    })
   }
 
   const button = (
@@ -56,7 +55,7 @@ export default function BookmarkComponent({
         variant="ghost"
         size="icon"
         onClick={isSignedIn ? handleBookmark : undefined}
-        disabled={!isLoaded || (Boolean(isSignedIn) && (pending || saved))}
+        disabled={!isLoaded || (Boolean(isSignedIn) && (isPending || saved))}
         aria-label={saved ? "Article bookmarked" : "Bookmark article"}
         aria-pressed={saved}
         title={saved ? "Bookmarked" : isSignedIn ? "Bookmark article" : "Sign in to bookmark"}
