@@ -24,6 +24,8 @@ export class SourceSelectionError extends Error {
 interface RunScrapeInput {
   sourceIds?: string[]
   limitPerSource: number
+  homepageHtmlsBySource?: Record<string, string[]>
+  label?: "Manual" | "Scheduled"
 }
 
 /**
@@ -103,6 +105,7 @@ async function processSource(
   source: ScrapingSource,
   limitPerSource: number,
   summary: ScrapeSummary,
+  scheduledHomepages?: string[],
 ): Promise<{ sourceSummary: SourceScrapeSummary; completed: boolean }> {
   const sourceSummary: SourceScrapeSummary = {
     sourceId: source.id,
@@ -118,50 +121,63 @@ async function processSource(
     sourceId: source.id,
   })
 
-  let homepageHtml: string
-  try {
-    homepageHtml = await fetchHtmlThroughOxylabs(source.listing_url)
-    await logEvent({
-      event: "scrape.homepage.fetched",
-      message: `Fetched ${source.name} homepage`,
-      metadata: { source_name: source.name },
-      sourceId: source.id,
-    })
-  } catch (error) {
-    if (error instanceof OxylabsError && error.kind === "configuration") throw error
-    const message = safeFailureMessage(error)
-    sourceSummary.error = message
-    incrementReason(summary, "homepage_fetch_failed")
-    await logEvent({
-      level: "error",
-      event: "scrape.source.failed",
-      message: `Unable to scrape ${source.name}`,
-      metadata: { source_name: source.name, reason: message },
-      sourceId: source.id,
-    })
+  const candidateBudget = Math.min(MAX_CANDIDATES_PER_SOURCE, Math.max(20, limitPerSource * 8))
+  let homepageHtmls = scheduledHomepages
+  if (!homepageHtmls) {
+    try {
+      homepageHtmls = [await fetchHtmlThroughOxylabs(source.listing_url)]
+      await logEvent({
+        event: "scrape.homepage.fetched",
+        message: `Fetched ${source.name} homepage`,
+        metadata: { source_name: source.name },
+        sourceId: source.id,
+      })
+    } catch (error) {
+      if (error instanceof OxylabsError && error.kind === "configuration") throw error
+      const message = safeFailureMessage(error)
+      sourceSummary.error = message
+      incrementReason(summary, "homepage_fetch_failed")
+      await logEvent({
+        level: "error",
+        event: "scrape.source.failed",
+        message: `Unable to scrape ${source.name}`,
+        metadata: { source_name: source.name, reason: message },
+        sourceId: source.id,
+      })
+      return { sourceSummary, completed: false }
+    }
+  }
+
+  if (!homepageHtmls.length) {
+    sourceSummary.error = "No completed Oxylabs homepage results were available"
+    incrementReason(summary, "scheduled_homepage_missing")
     return { sourceSummary, completed: false }
   }
 
-  const candidateBudget = Math.min(MAX_CANDIDATES_PER_SOURCE, Math.max(20, limitPerSource * 8))
-  const extraction = extractHomepageCandidates(homepageHtml, source.listing_url, candidateBudget)
-  sourceSummary.candidatesFound = extraction.urls.length
-  summary.candidatesFound += extraction.urls.length
-  summary.candidatesRejected += extraction.rejected
-  mergeReasons(summary, extraction.rejectionReasons)
+  const urls = new Set<string>()
+  for (const html of homepageHtmls) {
+    const extraction = extractHomepageCandidates(html, source.listing_url, candidateBudget)
+    for (const url of extraction.urls) urls.add(url)
+    summary.candidatesRejected += extraction.rejected
+    mergeReasons(summary, extraction.rejectionReasons)
+  }
+  const candidateUrls = [...urls].slice(0, candidateBudget)
+  sourceSummary.candidatesFound = candidateUrls.length
+  summary.candidatesFound += candidateUrls.length
 
   await logEvent({
     event: "scrape.candidates.extracted",
-    message: `Found ${extraction.urls.length} candidate articles for ${source.name}`,
+    message: `Found ${candidateUrls.length} candidate articles for ${source.name}`,
     metadata: {
       source_name: source.name,
-      candidates_found: extraction.urls.length,
-      candidates_rejected: extraction.rejected,
+      candidates_found: candidateUrls.length,
+      homepage_results: homepageHtmls.length,
     },
     sourceId: source.id,
   })
 
-  const existingUrls = await findExistingArticleUrls(extraction.urls)
-  const candidates = extraction.urls.filter((url) => {
+  const existingUrls = await findExistingArticleUrls(candidateUrls)
+  const candidates = candidateUrls.filter((url) => {
     if (!existingUrls.has(url)) return true
     summary.duplicatesSkipped += 1
     return false
@@ -249,10 +265,11 @@ async function processSource(
  * Persist operational logs and collect source and article failures in the summary.
  * Configuration errors and source-selection errors propagate to the caller.
  */
-export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSummary> {
+async function runScrape(input: RunScrapeInput): Promise<ScrapeSummary> {
   const startedAt = Date.now()
-  assertOxylabsConfiguration()
+  if (!input.homepageHtmlsBySource) assertOxylabsConfiguration()
   const sources = await resolveSources(input.sourceIds)
+  const label = input.label ?? "Manual"
   const summary: ScrapeSummary = {
     status: "success",
     sourcesChecked: 0,
@@ -270,7 +287,7 @@ export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSumm
 
   await logEvent({
     event: "scrape.run.started",
-    message: "Manual scrape started",
+    message: `${label} scrape started`,
     metadata: {
       selected_sources: sources.map((source) => source.name),
       limit_per_source: input.limitPerSource,
@@ -281,7 +298,12 @@ export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSumm
   for (const source of sources) {
     summary.sourcesChecked += 1
     try {
-      const result = await processSource(source, input.limitPerSource, summary)
+      const result = await processSource(
+        source,
+        input.limitPerSource,
+        summary,
+        input.homepageHtmlsBySource?.[source.id],
+      )
       summary.sources.push(result.sourceSummary)
       if (result.completed) completedSources += 1
     } catch (error) {
@@ -309,7 +331,7 @@ export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSumm
   await logEvent({
     level: summary.status === "success" ? "success" : summary.status === "partial" ? "warning" : "error",
     event: `scrape.run.${summary.status}`,
-    message: `Manual scrape ${summary.status}`,
+    message: `${label} scrape ${summary.status}`,
     metadata: {
       status: summary.status,
       sources_checked: summary.sourcesChecked,
@@ -326,4 +348,31 @@ export async function runManualScrape(input: RunScrapeInput): Promise<ScrapeSumm
   })
 
   return summary
+}
+
+export async function runManualScrape(input: Omit<RunScrapeInput, "homepageHtmlsBySource" | "label">) {
+  return runScrape(input)
+}
+
+export async function runScheduledScrape(homepageHtmlsBySource: Record<string, string[]>, limitPerSource = 5) {
+  const sourceIds = Object.entries(homepageHtmlsBySource)
+    .filter(([, htmls]) => htmls.length > 0)
+    .map(([sourceId]) => sourceId)
+  if (!sourceIds.length) {
+    return {
+      status: "success" as const,
+      sourcesChecked: 0,
+      candidatesFound: 0,
+      candidatesRejected: 0,
+      duplicatesSkipped: 0,
+      detailPagesScraped: 0,
+      articlesInserted: 0,
+      articlesRejected: 0,
+      articlesFailed: 0,
+      totalDurationMs: 0,
+      rejectionReasons: {},
+      sources: [],
+    } satisfies ScrapeSummary
+  }
+  return runScrape({ sourceIds, limitPerSource, homepageHtmlsBySource, label: "Scheduled" })
 }
