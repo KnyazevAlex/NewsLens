@@ -3,7 +3,6 @@
 import { motion, Variants } from "motion/react"
 import { BiasBadge } from "@/app/customComponents/bias-badge"
 import { BiasRatingIndicator } from "@/app/customComponents/bias-rating"
-import { NewsCardList, NewsCardExpanded } from "@/app/customComponents/news-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -76,7 +75,7 @@ export default function DesignSystemPage() {
       </motion.section>
 
       {/* 05 Card Designs */}
-      <motion.section variants={itemVariants} className="bg-white p-6 rounded-xl border border-neutral-200 space-y-6">
+      {/* <motion.section variants={itemVariants} className="bg-white p-6 rounded-xl border border-neutral-200 space-y-6">
         <h2 className="text-lg font-bold text-neutral-900">05 Card Designs</h2>
         
         <div className="space-y-2">
@@ -102,7 +101,7 @@ export default function DesignSystemPage() {
             biasLabel="neutral"
           />
         </div>
-      </motion.section>
+      </motion.section> */}
 
       {/* 06 Input & Controls */}
       <motion.section variants={itemVariants} className="bg-white p-6 rounded-xl border border-neutral-200 space-y-6">
